@@ -397,7 +397,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         if (current) updateTask(taskId, { status: current === TaskStatus.COMPLETED ? TaskStatus.PENDING : TaskStatus.COMPLETED });
     }, [activeProjectId, state.projects, updateTask]);
 
-    const moveTask = useCallback(async (draggedId: string, targetId: string, position: 'before' | 'after' | 'inside') => {
+    const moveTask = useCallback(async (_draggedId: string, _targetId: string, _position: 'before' | 'after' | 'inside') => {
         if (!activeProjectId) return;
         // Simplified move for sync
         fetchUserData();
