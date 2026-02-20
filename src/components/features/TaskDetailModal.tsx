@@ -339,36 +339,102 @@ export const TaskDetailModal: React.FC<{ task: Task; onClose: () => void }> = ({
                             </section>
                         </>
                     ) : (
-                        <div className="space-y-6 animate-fade-in">
-                            <div className="bg-indigo-500/10 border border-indigo-500/30 rounded-xl p-6">
-                                <h3 className="text-lg font-display text-white mb-2 flex items-center gap-2"><Icons.Bot className="text-indigo-400" /> Asistente de Tarea</h3>
-                                <p className="text-sm text-gray-400 mb-4">La IA analizará el título, descripción y el contexto oculto que proveas para sugerir siguientes pasos.</p>
+                        <div className="space-y-6 animate-fade-in pb-10">
+                            {/* Intelligence Header */}
+                            <div className="flex items-center justify-between mb-2">
+                                <div>
+                                    <h3 className="text-xl font-display font-bold text-white flex items-center gap-3">
+                                        <Icons.Bot className="text-indigo-400" />
+                                        Consultor de Tarea
+                                    </h3>
+                                    <p className="text-[10px] text-gray-500 uppercase tracking-widest mt-1">Sugerencias Estratégicas y Ejecución</p>
+                                </div>
+                            </div>
 
-                                <div className="mb-4">
-                                    <label className="text-xs font-bold uppercase tracking-widest text-indigo-300 mb-2 block">Contexto Oculto (Solo para IA)</label>
+                            {/* IA Training Context (Style matched with AIModal) */}
+                            <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
+                                <section className="p-6">
+                                    <h4 className="text-xs font-bold uppercase tracking-[0.15em] text-indigo-300 mb-4">ENTRENAMIENTO ESPECÍFICO</h4>
+
+                                    <div className="flex gap-2 mb-4">
+                                        <input
+                                            type="text"
+                                            value={linkUrl}
+                                            onChange={(e) => setLinkUrl(e.target.value)}
+                                            placeholder="Pegar link técnico para esta tarea..."
+                                            className="flex-1 bg-black/40 border border-white/10 rounded-xl px-4 py-2 text-xs text-white focus:outline-none focus:border-indigo-500/50"
+                                        />
+                                        <button
+                                            onClick={async () => {
+                                                if (!linkUrl.trim()) return;
+                                                setIsGeneratingAI(true);
+                                                try {
+                                                    const response = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(linkUrl)}`);
+                                                    const data = await response.json();
+                                                    const textContent = data.contents.replace(/<[^>]*>?/gm, ' ').substring(0, 5000);
+                                                    ctx.updateTask(task.id, { aiContext: (task.aiContext || '') + `\n\n[LINK ${linkUrl}]:\n` + textContent });
+                                                    setLinkUrl('');
+                                                } catch (e: any) {
+                                                    alert("No se pudo leer el link.");
+                                                } finally {
+                                                    setIsGeneratingAI(false);
+                                                }
+                                            }}
+                                            disabled={isGeneratingAI || !linkUrl.trim()}
+                                            className="px-4 bg-indigo-600/20 hover:bg-indigo-600/40 text-indigo-400 rounded-xl text-xs font-bold border border-indigo-500/20 disabled:opacity-30 transition-all"
+                                        >
+                                            LEER
+                                        </button>
+                                    </div>
+
                                     <textarea
                                         value={task.aiContext || ''}
                                         onChange={(e) => ctx.updateTask(task.id, { aiContext: e.target.value })}
-                                        placeholder="Pega aquí contenido de emails, datos técnicos o restricciones que la IA deba saber..."
-                                        className="w-full bg-black/40 border border-indigo-500/20 rounded-lg p-3 text-sm text-gray-300 focus:outline-none focus:border-indigo-500/50 min-h-[100px]"
+                                        placeholder="Pega aquí contenido especializado o arrastra archivos de texto..."
+                                        className="w-full bg-black/40 border border-white/10 rounded-xl p-4 text-sm text-gray-300 focus:outline-none focus:border-indigo-500/50 min-h-[140px] resize-none custom-scrollbar"
+                                        onDragOver={(e) => e.preventDefault()}
+                                        onDrop={(e) => {
+                                            e.preventDefault();
+                                            const file = e.dataTransfer.files[0];
+                                            if (file && (file.type.includes('text') || file.name.endsWith('.md') || file.name.endsWith('.txt'))) {
+                                                const reader = new FileReader();
+                                                reader.onload = (event) => {
+                                                    const content = event.target?.result as string;
+                                                    ctx.updateTask(task.id, { aiContext: (task.aiContext || '') + `\n\n[ARCHIVO ${file.name}]:\n` + content });
+                                                };
+                                                reader.readAsText(file);
+                                            } else {
+                                                alert("Solo archivos de texto (.txt, .md)");
+                                            }
+                                        }}
                                     />
-                                </div>
+                                    <p className="text-[10px] text-gray-600 mt-2 italic">Tip: Arrastra un .txt con el procedimiento para que la IA sea más precisa.</p>
+                                </section>
 
-                                <button
-                                    onClick={handleGenerateSuggestions}
-                                    disabled={isGeneratingAI}
-                                    className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 rounded-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
-                                >
-                                    {isGeneratingAI ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> : <Icons.Bot size={18} />}
-                                    Generar Siguientes Pasos
-                                </button>
+                                <div className="p-6 pt-0 border-t border-white/5 bg-white/[0.02]">
+                                    <button
+                                        onClick={handleGenerateSuggestions}
+                                        disabled={isGeneratingAI}
+                                        className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-4 rounded-xl transition-all flex items-center justify-center gap-3 shadow-lg shadow-indigo-900/20 active:scale-[0.98] disabled:opacity-50"
+                                    >
+                                        {isGeneratingAI ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> : <Icons.Bot size={20} />}
+                                        <span className="tracking-wide">GENERAR ESTRATEGIA DE EJECUCIÓN</span>
+                                    </button>
+                                </div>
                             </div>
 
+                            {/* Suggestions Display (Style matched with AIModal) */}
                             {task.suggestedSteps && (
-                                <div className="bg-white/5 border border-white/10 rounded-xl p-6 animate-slide-up">
-                                    <h4 className="text-sm font-bold text-white mb-4 uppercase tracking-widest border-b border-white/10 pb-2">Sugerencias</h4>
-                                    <div className="prose prose-invert prose-sm max-w-none">
-                                        {task.suggestedSteps.split('\n').map((line, i) => <p key={i} className="mb-1">{line}</p>)}
+                                <div className="bg-white/5 border border-white/10 rounded-2xl p-6 animate-slide-up shadow-inner relative group">
+                                    <div className="absolute top-4 right-4 text-[10px] font-bold text-gray-600 uppercase tracking-widest group-hover:text-indigo-400 transition-colors">Respuesta IA</div>
+                                    <h4 className="text-xs font-bold text-white mb-6 uppercase tracking-[0.2em] opacity-40">Plan Recomendado</h4>
+                                    <div className="prose prose-invert prose-sm max-w-none space-y-4">
+                                        {task.suggestedSteps.split('\n').filter(line => line.trim()).map((line, i) => (
+                                            <div key={i} className="flex gap-4 items-start bg-white/[0.02] p-3 rounded-xl border border-white/5">
+                                                <div className="mt-1.5 w-1.5 h-1.5 rounded-full bg-indigo-500 shrink-0"></div>
+                                                <p className="text-gray-300 leading-relaxed m-0">{line.replace(/^-\s*/, '')}</p>
+                                            </div>
+                                        ))}
                                     </div>
                                 </div>
                             )}

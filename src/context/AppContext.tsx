@@ -52,6 +52,7 @@ interface AppContextType {
     setCurrentUser: (user: User | null) => void;
     notifications: any[];
     markNotificationRead: (id: string) => void;
+    markAllNotificationsAsRead: () => void;
     unreadCount: number;
     isSyncing: boolean;
     notificationConfig: { type: 'success' | 'error' | 'info', title: string, message: string } | null;
@@ -301,7 +302,13 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
     const markNotificationRead = async (id: string) => {
         setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
-        await supabase.from('notifications').update({ is_read: true }).eq('id', id);
+        await (supabase as any).from('notifications').update({ is_read: true }).eq('id', id);
+    };
+
+    const markAllNotificationsAsRead = async () => {
+        if (notifications.length === 0) return;
+        setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+        await (supabase as any).from('notifications').update({ is_read: true }).eq('is_read', false).eq('user_id', currentUser?.id);
     };
 
     const unreadCount = notifications.filter(n => !n.is_read).length;
@@ -655,7 +662,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
             openTaskDetail, activeTask, setActiveTask, searchQuery, setSearchQuery, requestInput,
             modalConfig, setModalConfig, openAIModal, showAI, setShowAI, openStatsModal, showStats, setShowStats,
             openProfileModal, showProfile, setShowProfile, setCurrentUser,
-            notifications, markNotificationRead, unreadCount, isSyncing,
+            notifications, markNotificationRead, markAllNotificationsAsRead, unreadCount, isSyncing,
             notificationConfig, setNotificationConfig, projectMembers
         }}>
             {children}

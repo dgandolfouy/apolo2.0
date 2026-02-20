@@ -9,6 +9,14 @@ export const NotificationCenter: React.FC = () => {
 
     if (!ctx) return null;
 
+    const markAllNotificationsAsRead = ctx.markAllNotificationsAsRead;
+
+    React.useEffect(() => {
+        if (isOpen) {
+            markAllNotificationsAsRead();
+        }
+    }, [isOpen, markAllNotificationsAsRead]);
+
     const unreadCount = ctx.unreadCount || 0;
 
     const handleNotificationClick = (notif: any) => {
