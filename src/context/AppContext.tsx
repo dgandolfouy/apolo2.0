@@ -361,18 +361,47 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         const tempId = generateId();
         const newTask: Task = { id: tempId, title, status: TaskStatus.PENDING, attachments: [], tags: [], subtasks: [], expanded: true, createdBy: currentUser.id, activity: [], position: maxPos + 1000 };
 
+        // Optimistic UI Update
         modifyActiveProject(p => (!parentId ? { ...p, tasks: [...p.tasks, newTask] } : { ...p, tasks: findTaskAndAddSubtask(p.tasks, parentId, newTask) }));
 
-        await supabase.from('tasks').insert({
-            project_id: activeProjectId, parent_id: parentId, title, status: 'pending', created_by: currentUser.id, position: maxPos + 1000
-        });
-        fetchUserData();
+        try {
+            const { error } = await supabase.from('tasks').insert({
+                project_id: activeProjectId, parent_id: parentId, title, status: 'pending', created_by: currentUser.id, position: maxPos + 1000
+            });
+
+            if (error) {
+                console.error("Supabase addTask Error:", error);
+                throw error;
+            }
+
+            // Sync with server state
+            fetchUserData();
+        } catch (e: any) {
+            // Revert or Notify
+            setNotificationConfig({
+                type: 'error',
+                title: 'Error al Guardar Tarea',
+                message: e.message || 'No tienes permiso o hubo un fallo de conexión.'
+            });
+            // Optional: Revert optimistic change if critical
+            fetchUserData();
+        }
     }, [currentUser, activeProjectId, modifyActiveProject, state.projects, fetchUserData]);
 
     const deleteTask = useCallback(async (taskId: string) => {
         modifyActiveProject(p => ({ ...p, tasks: findTaskAndDelete(p.tasks, taskId) }));
-        await supabase.from('tasks').delete().eq('id', taskId);
-    }, [modifyActiveProject]);
+        try {
+            const { error } = await supabase.from('tasks').delete().eq('id', taskId);
+            if (error) throw error;
+        } catch (e: any) {
+            setNotificationConfig({
+                type: 'error',
+                title: 'Error al Borrar',
+                message: e.message || 'No se pudo eliminar la tarea.'
+            });
+            fetchUserData();
+        }
+    }, [modifyActiveProject, fetchUserData]);
 
     const updateTask = useCallback(async (taskId: string, updates: Partial<Task>) => {
         modifyActiveProject(p => ({ ...p, tasks: findTaskAndUpdate(p.tasks, taskId, t => ({ ...t, ...updates })) }));
@@ -381,8 +410,21 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         if (updates.description !== undefined) db.description = updates.description;
         if (updates.status) db.status = updates.status === TaskStatus.COMPLETED ? 'completed' : 'pending';
         if (updates.expanded !== undefined) db.expanded = updates.expanded;
-        if (Object.keys(db).length > 0) await supabase.from('tasks').update(db).eq('id', taskId);
-    }, [modifyActiveProject]);
+
+        try {
+            if (Object.keys(db).length > 0) {
+                const { error } = await supabase.from('tasks').update(db).eq('id', taskId);
+                if (error) throw error;
+            }
+        } catch (e: any) {
+            setNotificationConfig({
+                type: 'error',
+                title: 'Error al Actualizar',
+                message: e.message || 'No se pudo guardar el cambio.'
+            });
+            fetchUserData();
+        }
+    }, [modifyActiveProject, fetchUserData]);
 
     const toggleTaskStatus = useCallback((taskId: string) => {
         if (!activeProjectId) return;
