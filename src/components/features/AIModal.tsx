@@ -8,7 +8,10 @@ export const AIModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     const [response, setResponse] = useState('');
     const [loading, setLoading] = useState(false);
     const [trainingContext, setTrainingContext] = useState('');
+    const [urlInput, setUrlInput] = useState('');
+    const [fetchingUrl, setFetchingUrl] = useState(false);
     const [showTraining, setShowTraining] = useState(false);
+    const [isDragging, setIsDragging] = useState(false);
 
     const ctx = useContext(AppContext);
 
@@ -18,6 +21,42 @@ export const AIModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     const contextStr = activeProject
         ? `Proyecto Activo: ${activeProject.title} (${activeProject.subtitle}). Tareas actuales: ${activeProject.tasks.map(t => t.title).join(', ')}.`
         : "Sin proyecto activo seleccionado en el dashboard.";
+
+    const handleFetchUrl = async () => {
+        if (!urlInput.trim()) return;
+        setFetchingUrl(true);
+        try {
+            const response = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(urlInput)}`);
+            const data = await response.json();
+            const textContent = data.contents.replace(/<[^>]*>?/gm, ' ').substring(0, 5000);
+            setTrainingContext(prev => `${prev}\n\n[CONTENIDO DE ${urlInput}]:\n${textContent}`);
+            setUrlInput('');
+            setShowTraining(true);
+        } catch (e) {
+            alert("No se pudo leer el link. Prueba copiando el texto manualmente.");
+        } finally {
+            setFetchingUrl(false);
+        }
+    };
+
+    const handleFileDrop = (e: React.DragEvent) => {
+        e.preventDefault();
+        setIsDragging(false);
+        const file = e.dataTransfer.files[0];
+        if (!file) return;
+
+        if (file.type.includes('text') || file.name.endsWith('.md') || file.name.endsWith('.txt')) {
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                const content = event.target?.result as string;
+                setTrainingContext(prev => `${prev}\n\n[DOCUMENTO: ${file.name}]:\n${content}`);
+                setShowTraining(true);
+            };
+            reader.readAsText(file);
+        } else {
+            alert("Por ahora solo puedo leer archivos de texto (.txt, .md).");
+        }
+    };
 
     const handleAsk = async () => {
         if (!query.trim()) return;
@@ -56,11 +95,32 @@ export const AIModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                         {!showTraining && trainingContext && <span className="text-[10px] text-emerald-400">Contexto Activo</span>}
                     </button>
                     {showTraining && (
-                        <div className="p-4 pt-0">
+                        <div
+                            className={`p-4 pt-0 transition-colors ${isDragging ? 'bg-indigo-500/10' : ''}`}
+                            onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+                            onDragLeave={() => setIsDragging(false)}
+                            onDrop={handleFileDrop}
+                        >
+                            <div className="flex gap-2 mb-3">
+                                <input
+                                    type="text"
+                                    value={urlInput}
+                                    onChange={(e) => setUrlInput(e.target.value)}
+                                    placeholder="Pegar link para que la IA lo lea (ej: manual de costos)..."
+                                    className="flex-1 bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-[10px] text-white focus:outline-none focus:border-indigo-500/50"
+                                />
+                                <button
+                                    onClick={handleFetchUrl}
+                                    disabled={fetchingUrl || !urlInput.trim()}
+                                    className="px-3 bg-white/5 hover:bg-white/10 text-indigo-300 rounded-lg text-[10px] font-bold disabled:opacity-30 border border-white/10"
+                                >
+                                    {fetchingUrl ? 'LEYENDO...' : 'LEER LINK'}
+                                </button>
+                            </div>
                             <textarea
                                 value={trainingContext}
                                 onChange={(e) => setTrainingContext(e.target.value)}
-                                placeholder="Pega aquí información técnica, links o instrucciones específicas sobre cómo quieres que la IA analice tu situación ahora mismo..."
+                                placeholder="Pega información técnica, o ARRASTRA un archivo (.txt, .md) aquí mismo..."
                                 className="w-full h-24 bg-black/40 border border-white/10 rounded-lg p-3 text-xs text-gray-300 focus:outline-none focus:border-indigo-500/50 resize-none custom-scrollbar"
                             />
                         </div>

@@ -11,6 +11,7 @@ export const ProjectsList: React.FC = () => {
     const ctx = useContext(AppContext);
     const { signOut } = useAuth();
     const [isEditingSubtitle, setIsEditingSubtitle] = useState<string | null>(null);
+    const [showArchived, setShowArchived] = useState(false);
     const [confirmDelete, setConfirmDelete] = useState<{ isOpen: boolean; projectId: string | null }>({ isOpen: false, projectId: null });
 
     if (!ctx) return null;
@@ -50,10 +51,12 @@ export const ProjectsList: React.FC = () => {
         }
     };
 
-    const filteredProjects = ctx.state.projects.filter(p =>
-        p.title.toLowerCase().includes(ctx.searchQuery.toLowerCase()) ||
-        p.subtitle?.toLowerCase().includes(ctx.searchQuery.toLowerCase())
-    );
+    const filteredProjects = ctx.state.projects.filter(p => {
+        const matchesSearch = p.title.toLowerCase().includes(ctx.searchQuery.toLowerCase()) ||
+            p.subtitle?.toLowerCase().includes(ctx.searchQuery.toLowerCase());
+        const matchesArchived = showArchived ? p.is_archived : !p.is_archived;
+        return matchesSearch && matchesArchived;
+    });
 
     return (
         <div className="container mx-auto px-6 py-8 max-w-7xl animate-fade-in text-gray-200">
@@ -101,13 +104,11 @@ export const ProjectsList: React.FC = () => {
                             <Icons.Chart size={20} />
                         </button>
                         <button
-                            className="relative p-2 rounded-full bg-white/5 text-gray-400 hover:text-white hover:bg-white/10 transition-all"
-                            title="Notificaciones"
+                            onClick={() => setShowArchived(!showArchived)}
+                            className={`p-2 rounded-full transition-all ${showArchived ? 'bg-amber-500 text-white shadow-[0_0_15px_rgba(245,158,11,0.5)]' : 'bg-white/5 text-gray-400 hover:text-white hover:bg-white/10'}`}
+                            title={showArchived ? "Ver Proyectos Activos" : "Ver Proyectos Archivados"}
                         >
-                            <Icons.Bell size={20} />
-                            {ctx.unreadCount > 0 && (
-                                <span className="absolute top-0 right-0 w-2.5 h-2.5 bg-red-500 rounded-full border border-[#050505]"></span>
-                            )}
+                            <Icons.Archive size={20} />
                         </button>
 
                         <div className="w-px h-6 bg-white/10 mx-1"></div>
@@ -177,8 +178,16 @@ export const ProjectsList: React.FC = () => {
                                         />
                                     </label>
                                     <button
+                                        onClick={(e) => { e.stopPropagation(); ctx.archiveProject(project.id); }}
+                                        className={`p-2 bg-black/40 hover:bg-amber-500/80 rounded-full text-white/70 hover:text-white backdrop-blur-md transition-all ${project.is_archived ? 'text-amber-400' : ''}`}
+                                        title={project.is_archived ? "Desarchivar" : "Archivar"}
+                                    >
+                                        <Icons.Archive size={16} />
+                                    </button>
+                                    <button
                                         onClick={(e) => handleDeleteClick(e, project.id)}
                                         className="p-2 bg-black/40 hover:bg-red-500/80 rounded-full text-white/70 hover:text-white backdrop-blur-md transition-all"
+                                        title="Eliminar"
                                     >
                                         <Icons.Delete size={16} />
                                     </button>

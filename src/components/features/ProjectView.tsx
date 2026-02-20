@@ -13,6 +13,8 @@ export const ProjectView: React.FC = () => {
     if (!project) return null;
 
     const visibleTasks = ctx.searchQuery ? searchTasks(project.tasks, ctx.searchQuery) : project.tasks;
+    const activeTasks = visibleTasks.filter(t => !t.is_archived);
+    const archivedTasks = visibleTasks.filter(t => t.is_archived);
     const progress = getProjectProgress(project);
 
     const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -128,14 +130,32 @@ export const ProjectView: React.FC = () => {
             </header>
             <div className="flex-1 overflow-y-auto p-4 md:p-8 custom-scrollbar">
                 <div className="max-w-4xl mx-auto space-y-4 pb-20">
-                    {visibleTasks.length === 0 ? (
+                    {activeTasks.length === 0 && archivedTasks.length === 0 ? (
                         <div className="text-center py-20 opacity-30">
                             <div className="w-24 h-24 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-6"><Icons.File size={40} /></div>
                             <p className="text-xl">No hay tareas pendientes</p>
                             <button onClick={() => ctx.addTask(null, "Primera tarea")} className="mt-4 text-indigo-400 hover:text-indigo-300">Crear la primera tarea</button>
                         </div>
                     ) : (
-                        visibleTasks.map((task, i) => <TaskCard key={task.id} task={task} depth={0} themeIndex={i} />)
+                        <>
+                            {activeTasks.map((task, i) => <TaskCard key={task.id} task={task} depth={0} themeIndex={i} />)}
+
+                            {archivedTasks.length > 0 && (
+                                <div className="mt-12 pt-8 border-t border-white/5">
+                                    <div className="flex items-center gap-4 mb-6 opacity-40">
+                                        <div className="h-px flex-1 bg-white/10"></div>
+                                        <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-gray-500 flex items-center gap-2">
+                                            <Icons.Archive size={14} />
+                                            Tareas Archivadas / Terminadas ({archivedTasks.length})
+                                        </h3>
+                                        <div className="h-px flex-1 bg-white/10"></div>
+                                    </div>
+                                    <div className="space-y-4 opacity-60 hover:opacity-100 transition-opacity grayscale hover:grayscale-0">
+                                        {archivedTasks.map((task, i) => <TaskCard key={task.id} task={task} depth={0} themeIndex={i} />)}
+                                    </div>
+                                </div>
+                            )}
+                        </>
                     )}
                 </div>
             </div>

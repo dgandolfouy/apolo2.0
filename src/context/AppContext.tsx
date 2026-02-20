@@ -23,6 +23,8 @@ interface AppContextType {
     addTask: (parentId: string | null, title: string) => void;
     updateTask: (taskId: string, updates: Partial<Task>) => void;
     deleteTask: (taskId: string) => void;
+    archiveTask: (taskId: string) => void;
+    archiveProject: (projectId: string) => void;
     moveTask: (draggedId: string, targetId: string, position: 'before' | 'after' | 'inside') => void;
     addActivity: (taskId: string, content: string, type: ActivityLog['type']) => void;
     updateActivity: (taskId: string, logId: string, newContent: string) => void;
@@ -165,6 +167,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
                     createdAt: new Date(p.created_at).getTime(),
                     imageUrl: p.image_url,
                     position: p.position,
+                    is_archived: p.is_archived,
                     tasks: rootTasks
                 };
             });
@@ -442,6 +445,24 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         }
     }, [modifyActiveProject, fetchUserData]);
 
+    const archiveTask = useCallback(async (taskId: string) => {
+        modifyActiveProject(p => ({ ...p, tasks: findTaskAndUpdate(p.tasks, taskId, t => ({ ...t, is_archived: !t.is_archived })) }));
+        const { data } = await supabase.from('tasks').select('is_archived').eq('id', taskId).single();
+        if (data) await supabase.from('tasks').update({ is_archived: !data.is_archived }).eq('id', taskId);
+    }, [modifyActiveProject]);
+
+    const archiveProject = useCallback(async (projectId: string) => {
+        setState(prev => ({
+            ...prev,
+            projects: prev.projects.map(p => p.id === projectId ? { ...p, is_archived: !p.is_archived } : p)
+        }));
+        const { data } = await supabase.from('projects').select('is_archived').eq('id', projectId).single();
+        if (data) {
+            await supabase.from('projects').update({ is_archived: !data.is_archived }).eq('id', projectId);
+            if (activeProjectId === projectId) setActiveProjectId(null);
+        }
+    }, [activeProjectId]);
+
     const toggleTaskStatus = useCallback(async (taskId: string) => {
         if (!activeProjectId) return;
         const project = state.projects.find(p => p.id === activeProjectId);
@@ -629,7 +650,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         <AppContext.Provider value={{
             state, currentUser, users, activeProjectId, setActiveProjectId,
             draggedTaskId, setDraggedTaskId, addProject, updateProject, moveProject, deleteProject,
-            updateCurrentUser, logout, toggleTaskStatus, addTask, updateTask, deleteTask, moveTask,
+            updateCurrentUser, logout, toggleTaskStatus, addTask, updateTask, deleteTask, archiveTask, archiveProject, moveTask,
             addActivity, updateActivity, deleteActivity, addAttachment, deleteAttachment, toggleExpand,
             openTaskDetail, activeTask, setActiveTask, searchQuery, setSearchQuery, requestInput,
             modalConfig, setModalConfig, openAIModal, showAI, setShowAI, openStatsModal, showStats, setShowStats,

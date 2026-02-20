@@ -221,6 +221,17 @@ export const TaskCard: React.FC<{ task: Task; depth: number; themeIndex?: number
                                     >
                                         <Icons.Add size={10} /> Subtarea
                                     </button>
+
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            ctx.archiveTask(task.id);
+                                        }}
+                                        className={`opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 text-[10px] px-2 py-0.5 rounded transition-all ${task.is_archived ? 'bg-amber-500/20 text-amber-400' : 'bg-white/5 hover:bg-amber-500/20 text-gray-400 hover:text-amber-400'}`}
+                                        title={task.is_archived ? "Desarchivar" : "Archivar"}
+                                    >
+                                        <Icons.Archive size={10} /> {task.is_archived ? 'Archivada' : 'Archivar'}
+                                    </button>
                                 </div>
 
                                 {(owner?.name || task.createdBy) && (
