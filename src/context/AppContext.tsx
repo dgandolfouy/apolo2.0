@@ -251,10 +251,21 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
             .subscribe();
 
         const collabChannel = supabase.channel('collaboration')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, () => fetchUserData())
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'projects' }, () => fetchUserData())
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'project_members' }, () => fetchUserData())
-            .subscribe();
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, () => {
+                console.log("Realtime: Syncing tasks...");
+                fetchUserData();
+            })
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'projects' }, () => {
+                console.log("Realtime: Syncing projects...");
+                fetchUserData();
+            })
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'project_members' }, () => {
+                console.log("Realtime: Syncing members...");
+                fetchUserData();
+            })
+            .subscribe((status) => {
+                console.log("Realtime (collab):", status);
+            });
 
         const poll = setInterval(() => {
             fetchUserData();
