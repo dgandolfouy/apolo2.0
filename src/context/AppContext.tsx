@@ -251,6 +251,17 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
                 const myProfile = mappedUsers.find((u: any) => u.id === currentUser.id);
                 if (myProfile) {
                     setCurrentUser(prev => prev ? { ...prev, name: myProfile.name, avatarUrl: myProfile.avatarUrl } : prev);
+                } else {
+                    // FAIL-SAFE: If profile doesn't exist, create it manually
+                    console.log("AppContext: Profile missing, performing fail-safe sync...");
+                    const payload = {
+                        id: currentUser.id,
+                        email: currentUser.email,
+                        full_name: currentUser.name,
+                        avatar_url: currentUser.avatarUrl,
+                        updated_at: new Date().toISOString()
+                    };
+                    await (supabase as any).from('profiles').upsert(payload);
                 }
             }
 
