@@ -434,6 +434,15 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
     const updateTask = useCallback(async (taskId: string, updates: Partial<Task>) => {
         modifyActiveProject(p => ({ ...p, tasks: findTaskAndUpdate(p.tasks, taskId, t => ({ ...t, ...updates })) }));
+
+        // Fix: Sync activeTask state if it's the one being updated
+        setActiveTask(prev => {
+            if (prev && prev.id === taskId) {
+                return { ...prev, ...updates };
+            }
+            return prev;
+        });
+
         const db: any = {};
         if (updates.title) db.title = updates.title;
         if (updates.description !== undefined) db.description = updates.description;
