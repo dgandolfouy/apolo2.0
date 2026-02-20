@@ -41,30 +41,26 @@ export const TaskCard: React.FC<{ task: Task; depth: number; themeIndex?: number
     const colorBasename = theme.name.toLowerCase();
 
     // Design: 
-    // Depth 0: Solid Gradient (Visible)
-    // Depth 1: Translucent (Glassy)
-    // Depth >1: Very Translucent (Ghost)
-    let bgClass;
+    // Depth 0: Solidish Gradient
+    // Depth 1: Clear block of color (/15)
+    // Depth >1: Lighter color (/10) with thick left border
+    let bgClass = "";
+    let borderClass = "";
+
     if (isDragging) {
         bgClass = `bg-${colorBasename}-500/5 border-dashed border-${colorBasename}-500/30`;
     } else if (depth === 0) {
-        // Root Task: Gradient
-        // e.g. bg-gradient-to-br from-indigo-500/20 to-indigo-900/40
-        bgClass = `bg-gradient-to-br from-${colorBasename}-500/20 to-${colorBasename}-900/40 border-${colorBasename}-500/30 shadow-lg shadow-${colorBasename}-900/20`;
+        // Root Task: Stronger Gradient
+        bgClass = `bg-gradient-to-br from-${colorBasename}-500/20 to-${colorBasename}-900/40 border-${colorBasename}-500/40 shadow-xl shadow-${colorBasename}-900/30`;
     } else {
-        // Subtasks: Flat color with decreasing opacity
-        // Depth 1: /10, Depth 2: /5
-        const opacity = depth === 1 ? '10' : '5';
-        bgClass = `bg-${colorBasename}-500/${opacity} border-${colorBasename}-500/10 hover:bg-${colorBasename}-500/10`;
+        // Subtasks
+        const opacity = depth === 1 ? '15' : '10';
+        bgClass = `bg-${colorBasename}-500/${opacity} hover:bg-${colorBasename}-500/20`;
+        borderClass = `border-${colorBasename}-500/30`;
     }
 
-    const borderClass = isDragging
-        ? ''
-        : (depth === 0 ? '' : `border-${colorBasename}-500/10`); // Root already has border in bgClass
-
-    const dotColorClass = `bg-${colorBasename}-500`;
-
     const cardStyle = `${bgClass} ${borderClass} transition-all`;
+    const dotColorClass = `bg-${colorBasename}-500`;
 
     const typeLabel = depth === 0 ? "Tarea" : "Subtarea";
 
@@ -123,7 +119,7 @@ export const TaskCard: React.FC<{ task: Task; depth: number; themeIndex?: number
 
     return (
         <div
-            className={`relative group transition-all duration-300 ${depth > 0 ? 'ml-8 pl-4 py-2 border-l-2' : 'mb-4'} ${depth > 0 ? theme.border.replace('/30', '/10') : ''}`}
+            className={`relative group transition-all duration-300 ${depth > 0 ? 'ml-8 pl-4 py-2 border-l-2' : 'mb-4'} ${depth > 0 ? `border-${colorBasename}-500/30` : ''}`}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
@@ -175,8 +171,8 @@ export const TaskCard: React.FC<{ task: Task; depth: number; themeIndex?: number
                         <button
                             onClick={(e) => { e.stopPropagation(); ctx.toggleTaskStatus(task.id); }}
                             className={`mt-1 min-w-[20px] h-5 rounded-full border-2 flex items-center justify-center transition-all ${task.status === TaskStatus.COMPLETED
-                                ? 'bg-indigo-500 border-indigo-500 text-white shadow-[0_0_10px_rgba(99,102,241,0.5)]'
-                                : `border-white/20 hover:border-indigo-400`
+                                ? `bg-${colorBasename}-500 border-${colorBasename}-500 text-white shadow-[0_0_10px_rgba(0,0,0,0.3)]`
+                                : `border-white/20 hover:border-${colorBasename}-400`
                                 }`}
                         >
                             {task.status === TaskStatus.COMPLETED && <Icons.Check size={12} strokeWidth={3} />}
@@ -257,7 +253,7 @@ export const TaskCard: React.FC<{ task: Task; depth: number; themeIndex?: number
 
             {/* Recursive Subtasks*/}
             {task.expanded && hasSubtasks && (
-                <div className="mt-4 space-y-3 pl-4 border-l-2 border-white/5">
+                <div className="mt-4 space-y-3 pl-4 border-l-2 border-white/10">
                     {task.subtasks.map(subtask => (
                         <TaskCard
                             key={subtask.id}
