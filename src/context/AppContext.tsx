@@ -442,21 +442,73 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         }
     }, [modifyActiveProject, fetchUserData]);
 
-    const toggleTaskStatus = useCallback((taskId: string) => {
+    const toggleTaskStatus = useCallback(async (taskId: string) => {
         if (!activeProjectId) return;
         const project = state.projects.find(p => p.id === activeProjectId);
         if (!project) return;
-        const findS = (tasks: Task[]): TaskStatus | null => {
-            for (const t of tasks) {
-                if (t.id === taskId) return t.status;
-                const s = findS(t.subtasks);
-                if (s) return s;
-            }
-            return null;
+
+        const task = findTask(project.tasks, taskId);
+        if (!task) return;
+
+        const newStatus = task.status === TaskStatus.COMPLETED ? TaskStatus.PENDING : TaskStatus.COMPLETED;
+        const updates: { id: string, status: TaskStatus }[] = [];
+
+        // 1. Cascade Downwards: Mark all subtasks with the same status
+        const collectDown = (t: Task) => {
+            updates.push({ id: t.id, status: newStatus });
+            t.subtasks.forEach(collectDown);
         };
-        const current = findS(project.tasks);
-        if (current) updateTask(taskId, { status: current === TaskStatus.COMPLETED ? TaskStatus.PENDING : TaskStatus.COMPLETED });
-    }, [activeProjectId, state.projects, updateTask]);
+        collectDown(task);
+
+        // 2. Cascade Upwards: Check if parents should be completed/uncompleted
+        let currentId = taskId;
+        let tempTasks = [...project.tasks]; // Shallow copy for upward check simulation
+
+        // We need a loop to go up the tree
+        while (true) {
+            const result = findTaskAndParent(tempTasks, currentId);
+            if (!result || !result.parentId) break;
+
+            const parentTask = findTask(tempTasks, result.parentId);
+            if (!parentTask) break;
+
+            // Determine parent's new status based on all its children
+            // Map current updates onto the children list to see the "future" state
+            const childStatuses = parentTask.subtasks.map(child => {
+                const updated = updates.find(u => u.id === child.id);
+                return updated ? updated.status : child.status;
+            });
+
+            const allCompleted = childStatuses.every(s => s === TaskStatus.COMPLETED);
+            const parentNewStatus = allCompleted ? TaskStatus.COMPLETED : TaskStatus.PENDING;
+
+            if (parentTask.status !== parentNewStatus) {
+                updates.push({ id: parentTask.id, status: parentNewStatus });
+                currentId = parentTask.id;
+            } else {
+                break;
+            }
+        }
+
+        // Apply all updates
+        try {
+            // Optimistic local update
+            let updatedTasks = project.tasks;
+            updates.forEach(u => {
+                updatedTasks = findTaskAndUpdate(updatedTasks, u.id, t => ({ ...t, status: u.status }));
+            });
+            modifyActiveProject(p => ({ ...p, tasks: updatedTasks }));
+
+            // Persistent DB update
+            // We do individual updates for simplicity, or we could chunk them
+            for (const u of updates) {
+                await supabase.from('tasks').update({ status: u.status }).eq('id', u.id);
+            }
+        } catch (e: any) {
+            setNotificationConfig({ type: 'error', title: 'Error de Sincronización', message: e.message });
+            fetchUserData();
+        }
+    }, [activeProjectId, state.projects, modifyActiveProject, fetchUserData]);
 
     const moveTask = useCallback(async (draggedId: string, targetId: string, position: 'before' | 'after' | 'inside') => {
         if (!activeProjectId) return;
