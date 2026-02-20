@@ -238,6 +238,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         const init = async () => {
             const { data } = await supabase.from('notifications').select('*').eq('user_id', currentUser.id).order('created_at', { ascending: false }).limit(20);
             if (data && isMounted) setNotifications(data);
+
+            // CRITICAL: Fetch projects and tasks on load
+            fetchUserData();
         };
         init();
 
