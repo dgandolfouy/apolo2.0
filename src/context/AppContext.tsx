@@ -270,6 +270,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const joinProject = async (projectId: string) => {
         if (!currentUser) return;
         try {
+            console.log("Joining project:", projectId, "for user:", currentUser.id);
             const { error } = await supabase.from('project_members').insert({
                 project_id: projectId,
                 user_id: currentUser.id,
@@ -280,15 +281,21 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
                 if (error.code === '23505') {
                     console.log("Already a member");
                 } else {
+                    console.error("Supabase Error Joining:", error);
                     throw error;
                 }
             } else {
                 alert("¡Te has unido al proyecto exitosamente!");
                 fetchUserData();
             }
-        } catch (e) {
+        } catch (e: any) {
             console.error("Error joining project:", e);
-            alert("Error al unirse al proyecto. Verifica el enlace.");
+            alert(`Error al unirse al proyecto: ${e.message || "Verifica el enlace o permisos."}`);
+        } finally {
+            // Clear the invite param from URL to avoid repeating on every fetch
+            const url = new URL(window.location.href);
+            url.searchParams.delete('invite');
+            window.history.replaceState({}, '', url.pathname + url.search + url.hash);
         }
     };
 
