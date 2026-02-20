@@ -10,16 +10,23 @@ const getClient = () => {
     return new GoogleGenAI({ apiKey });
 };
 
+export interface AIMediaPart {
+    mimeType: string;
+    data: string;
+    name: string;
+}
+
 export const getStrategicAdvice = async (
     projectContext: string,
     question: string,
-    customContext?: string
+    customContext?: string,
+    mediaParts?: AIMediaPart[]
 ): Promise<string> => {
     const client = getClient();
     if (!client) return "Error: API Key no configurada.";
 
     try {
-        const prompt = `
+        const promptText = `
       ROL:
       Eres un Project Manager Senior y Consultor Estratégico experto en ejecución y optimización.
       Tu objetivo es dar respuestas breves, extremadamente accionables y directas. No divagues.
@@ -31,7 +38,7 @@ export const getStrategicAdvice = async (
       ${customContext}` : ''}
 
       INSTRUCCIONES:
-      1. Estudia el contexto del proyecto y el contexto de estudio (si existe).
+      1. Estudia el contexto del proyecto, el contexto de estudio y cualquier archivo/imagen adjunto.
       2. Responde a la consulta del usuario de forma profesional y orientada a la acción.
       3. Si el usuario te dio un link o información específica, básate en ella priorizando esos datos.
       
@@ -39,9 +46,27 @@ export const getStrategicAdvice = async (
       ${question}
     `;
 
-        const response = await client.models.generateContent({
+        const parts: any[] = [{ text: promptText }];
+
+        if (mediaParts && mediaParts.length > 0) {
+            mediaParts.forEach(part => {
+                // Ensure base64 is clean (no prefix)
+                const base64Data = part.data.includes('base64,') ? part.data.split('base64,')[1] : part.data;
+                parts.push({
+                    inlineData: {
+                        mimeType: part.mimeType,
+                        data: base64Data
+                    }
+                });
+            });
+        }
+
+        const response = await (client as any).models.generateContent({
             model: 'gemini-2.0-flash',
-            contents: prompt,
+            contents: [{
+                role: 'user',
+                parts: parts
+            }]
         });
 
         return response.text || "No se pudo generar un consejo.";
@@ -55,13 +80,14 @@ export const generateTaskSuggestions = async (
     taskTitle: string,
     taskDescription: string,
     taskContext: string,
-    projectTitle: string
+    projectTitle: string,
+    mediaParts?: AIMediaPart[]
 ): Promise<string> => {
     const client = getClient();
     if (!client) return "Configura tu API Key para recibir sugerencias.";
 
     try {
-        const prompt = `
+        const promptText = `
       ESTÁS DENTRO DE UNA TAREA ESPECÍFICA.
       Proyecto: ${projectTitle}
       Tarea: ${taskTitle}
@@ -70,17 +96,35 @@ export const generateTaskSuggestions = async (
 
       OBJETIVO:
       Genera una lista de 3 a 5 "Siguientes Pasos" concretos y accionables para desbloquear o avanzar esta tarea.
-      Si hay contexto técnico (ej: medidas, costos), úsalo para ser preciso.
+      Si hay contexto técnico (ej: medidas, costos) o archivos adjuntos (imágenes/PDFs), úsalos para ser preciso.
       Formato: Markdown simple (lista con bullets). Sé breve.
     `;
 
-        const response = await client.models.generateContent({
+        const parts: any[] = [{ text: promptText }];
+
+        if (mediaParts && mediaParts.length > 0) {
+            mediaParts.forEach(part => {
+                const base64Data = part.data.includes('base64,') ? part.data.split('base64,')[1] : part.data;
+                parts.push({
+                    inlineData: {
+                        mimeType: part.mimeType,
+                        data: base64Data
+                    }
+                });
+            });
+        }
+
+        const response = await (client as any).models.generateContent({
             model: 'gemini-2.0-flash',
-            contents: prompt,
+            contents: [{
+                role: 'user',
+                parts: parts
+            }]
         });
 
         return response.text || "Sin sugerencias por el momento.";
     } catch (error) {
+        console.error("Error generating suggestions:", error);
         return "Error al generar sugerencias.";
     }
 };

@@ -61,6 +61,7 @@ export interface Task {
 
     // AI Integration
     aiContext?: string; // Hidden context for the AI
+    aiMediaContext?: { mimeType: string; data: string; name: string }[]; // New multimodal parts
     suggestedSteps?: string; // AI generated suggestions
     is_archived?: boolean; // New v0.9.92
 }

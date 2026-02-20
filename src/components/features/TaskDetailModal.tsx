@@ -119,7 +119,8 @@ export const TaskDetailModal: React.FC<{ task: Task; onClose: () => void }> = ({
             task.title,
             task.description || '',
             task.aiContext || '',
-            project?.title || ''
+            project?.title || '',
+            task.aiMediaContext
         );
         ctx.updateTask(task.id, { suggestedSteps: suggestions });
         setIsGeneratingAI(false);
@@ -387,28 +388,68 @@ export const TaskDetailModal: React.FC<{ task: Task; onClose: () => void }> = ({
                                         </button>
                                     </div>
 
+                                    {/* Media Context Preview */}
+                                    {task.aiMediaContext && task.aiMediaContext.length > 0 && (
+                                        <div className="flex flex-wrap gap-2 mb-4">
+                                            {task.aiMediaContext.map((media, idx) => (
+                                                <div key={idx} className="flex items-center gap-2 bg-indigo-500/10 border border-indigo-500/20 rounded-lg px-2 py-1 group/media">
+                                                    <span className="text-[10px] text-indigo-300 font-medium truncate max-w-[120px]">{media.name}</span>
+                                                    <button
+                                                        onClick={() => {
+                                                            const updated = task.aiMediaContext?.filter((_, i) => i !== idx);
+                                                            ctx.updateTask(task.id, { aiMediaContext: updated });
+                                                        }}
+                                                        className="text-indigo-400 hover:text-red-400 transition-colors"
+                                                    >
+                                                        <Icons.Close size={10} />
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+
                                     <textarea
                                         value={task.aiContext || ''}
                                         onChange={(e) => ctx.updateTask(task.id, { aiContext: e.target.value })}
-                                        placeholder="Pega aquí contenido especializado o arrastra archivos de texto..."
+                                        placeholder="Pega aquí contenido especializado o arrastra archivos de texto, fotos, PDFs o videos..."
                                         className="w-full bg-black/40 border border-white/10 rounded-xl p-4 text-sm text-gray-300 focus:outline-none focus:border-indigo-500/50 min-h-[140px] resize-none custom-scrollbar"
                                         onDragOver={(e) => e.preventDefault()}
                                         onDrop={(e) => {
                                             e.preventDefault();
                                             const file = e.dataTransfer.files[0];
-                                            if (file && (file.type.includes('text') || file.name.endsWith('.md') || file.name.endsWith('.txt'))) {
+                                            if (!file) return;
+
+                                            if (file.type.includes('text') || file.name.endsWith('.md') || file.name.endsWith('.txt')) {
                                                 const reader = new FileReader();
                                                 reader.onload = (event) => {
                                                     const content = event.target?.result as string;
                                                     ctx.updateTask(task.id, { aiContext: (task.aiContext || '') + `\n\n[ARCHIVO ${file.name}]:\n` + content });
                                                 };
                                                 reader.readAsText(file);
+                                            } else if (file.type.includes('image/') || file.type === 'application/pdf' || file.type.includes('video/')) {
+                                                if (file.size > 10 * 1024 * 1024) {
+                                                    alert("El archivo es demasiado grande (máx 10MB para IA)");
+                                                    return;
+                                                }
+                                                const reader = new FileReader();
+                                                reader.onload = (event) => {
+                                                    const base64 = event.target?.result as string;
+                                                    const newMedia = {
+                                                        mimeType: file.type || 'application/octet-stream',
+                                                        data: base64,
+                                                        name: file.name
+                                                    };
+                                                    ctx.updateTask(task.id, {
+                                                        aiMediaContext: [...(task.aiMediaContext || []), newMedia]
+                                                    });
+                                                };
+                                                reader.readAsDataURL(file);
                                             } else {
-                                                alert("Solo archivos de texto (.txt, .md)");
+                                                alert("Formato no soportado. Usa texto, imágenes, PDF o video.");
                                             }
                                         }}
                                     />
-                                    <p className="text-[10px] text-gray-600 mt-2 italic">Tip: Arrastra un .txt con el procedimiento para que la IA sea más precisa.</p>
+                                    <p className="text-[10px] text-gray-600 mt-2 italic">Tip: Arrastra archivos (PDF, Fotos, Video) para que la IA los analice.</p>
                                 </section>
 
                                 <div className="p-6 pt-0 border-t border-white/5 bg-white/[0.02]">

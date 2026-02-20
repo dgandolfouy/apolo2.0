@@ -12,6 +12,7 @@ export const AIModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     const [fetchingUrl, setFetchingUrl] = useState(false);
     const [showTraining, setShowTraining] = useState(false);
     const [isDragging, setIsDragging] = useState(false);
+    const [mediaParts, setMediaParts] = useState<{ mimeType: string; data: string; name: string }[]>([]);
 
     const ctx = useContext(AppContext);
 
@@ -53,15 +54,31 @@ export const AIModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                 setShowTraining(true);
             };
             reader.readAsText(file);
+        } else if (file.type.includes('image/') || file.type === 'application/pdf' || file.type.includes('video/')) {
+            if (file.size > 10 * 1024 * 1024) {
+                alert("El archivo es demasiado grande (máx 10MB para IA)");
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                const base64 = event.target?.result as string;
+                setMediaParts(prev => [...prev, {
+                    mimeType: file.type || 'application/octet-stream',
+                    data: base64,
+                    name: file.name
+                }]);
+                setShowTraining(true);
+            };
+            reader.readAsDataURL(file);
         } else {
-            alert("Por ahora solo puedo leer archivos de texto (.txt, .md).");
+            alert("Formato no soportado. Usa texto, imágenes, PDF o video.");
         }
     };
 
     const handleAsk = async () => {
         if (!query.trim()) return;
         setLoading(true);
-        const res = await getStrategicAdvice(contextStr, query, trainingContext);
+        const res = await getStrategicAdvice(contextStr, query, trainingContext, mediaParts);
         setResponse(res);
         setLoading(false);
     };
@@ -117,10 +134,28 @@ export const AIModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                                     {fetchingUrl ? 'LEYENDO...' : 'LEER LINK'}
                                 </button>
                             </div>
+
+                            {/* Multi-modal previews */}
+                            {mediaParts.length > 0 && (
+                                <div className="flex flex-wrap gap-2 mb-3">
+                                    {mediaParts.map((media, idx) => (
+                                        <div key={idx} className="flex items-center gap-2 bg-indigo-500/10 border border-indigo-500/20 rounded-md px-2 py-0.5 group/media">
+                                            <span className="text-[9px] text-indigo-300 font-medium truncate max-w-[100px]">{media.name}</span>
+                                            <button
+                                                onClick={() => setMediaParts(prev => prev.filter((_, i) => i !== idx))}
+                                                className="text-indigo-400 hover:text-red-400 transition-colors"
+                                            >
+                                                <Icons.Close size={8} />
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
                             <textarea
                                 value={trainingContext}
                                 onChange={(e) => setTrainingContext(e.target.value)}
-                                placeholder="Pega información técnica, o ARRASTRA un archivo (.txt, .md) aquí mismo..."
+                                placeholder="Pega información técnica, o ARRASTRA archivos (Fotos, PDF, Video) aquí mismo..."
                                 className="w-full h-24 bg-black/40 border border-white/10 rounded-lg p-3 text-xs text-gray-300 focus:outline-none focus:border-indigo-500/50 resize-none custom-scrollbar"
                             />
                         </div>

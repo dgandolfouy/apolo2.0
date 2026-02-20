@@ -140,6 +140,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
                 rawTasks.forEach((t: any) => {
                     taskMap.set(t.id, {
                         ...t,
+                        aiContext: t.ai_context,
+                        aiMediaContext: t.ai_media_context,
+                        suggestedSteps: t.suggested_steps,
                         createdBy: t.created_by || p.owner_id,
                         createdAt: new Date(t.created_at).getTime(),
                         subtasks: [],
@@ -436,6 +439,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         if (updates.description !== undefined) db.description = updates.description;
         if (updates.status) db.status = updates.status === TaskStatus.COMPLETED ? 'completed' : 'pending';
         if (updates.expanded !== undefined) db.expanded = updates.expanded;
+        if (updates.aiContext !== undefined) db.ai_context = updates.aiContext;
+        if (updates.aiMediaContext !== undefined) db.ai_media_context = updates.aiMediaContext;
+        if (updates.suggestedSteps !== undefined) db.suggested_steps = updates.suggestedSteps;
 
         try {
             if (Object.keys(db).length > 0) {
