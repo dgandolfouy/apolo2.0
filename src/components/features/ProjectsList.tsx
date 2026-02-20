@@ -261,16 +261,6 @@ export const ProjectsList: React.FC = () => {
                 )
             }
 
-            {/* Footer */}
-            <div className="mt-20 border-t border-white/5 pt-8 flex flex-col items-center justify-center text-center opacity-30 hover:opacity-100 transition-opacity duration-500">
-                <p className="text-[10px] uppercase tracking-widest text-indigo-300 font-medium mb-2">Apolo App</p>
-                <p className="text-xs text-gray-500 mb-1">
-                    &copy; {new Date().getFullYear()} Guten.uy. Todos los derechos reservados.
-                </p>
-                <p className="text-xs text-gray-500 mb-1">
-                    v0.9.65 - Propiedad Intelectual Protegida
-                </p>
-            </div>
 
             <ConfirmModal
                 isOpen={confirmDelete.isOpen}

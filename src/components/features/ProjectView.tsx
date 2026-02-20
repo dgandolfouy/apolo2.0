@@ -32,35 +32,38 @@ export const ProjectView: React.FC = () => {
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 max-w-7xl mx-auto">
                     <div className="flex items-center gap-4">
                         <button onClick={() => ctx.setActiveProjectId(null)} className="p-3 rounded-xl bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white transition-all"><Icons.Close size={20} /></button>
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-4">
                             <label className="group cursor-pointer relative">
                                 {project.imageUrl ? (
-                                    <img src={project.imageUrl} alt="" className="w-10 h-10 rounded-lg object-cover border border-white/20" />
+                                    <img src={project.imageUrl} alt="" className="w-12 h-12 rounded-xl object-cover border border-white/20 shadow-lg" />
                                 ) : (
-                                    <div className="w-10 h-10 rounded-lg bg-indigo-500/20 flex items-center justify-center border border-indigo-500/30">
-                                        <Icons.Camera size={18} className="text-indigo-400" />
+                                    <div className="w-12 h-12 rounded-xl bg-indigo-500/20 flex items-center justify-center border border-indigo-500/30 shadow-lg">
+                                        <Icons.Camera size={20} className="text-indigo-400" />
                                     </div>
                                 )}
-                                <div className="absolute inset-0 bg-black/50 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <Icons.Settings size={14} className="text-white" />
+                                <div className="absolute inset-0 bg-black/50 rounded-xl flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <Icons.Settings size={16} className="text-white" />
                                 </div>
                                 <input type="file" className="hidden" accept="image/*" onChange={handleImageUpload} />
                             </label>
 
-                            <div>
-                                <h1
-                                    className="text-2xl md:text-3xl font-display font-bold text-white hover:text-indigo-400 transition-colors cursor-pointer leading-tight pb-1"
-                                    onClick={() => ctx.requestInput("Nombre del Proyecto", (title) => ctx.updateProject(project.id, { title }))}
-                                >
-                                    {project.title}
-                                </h1>
-                                <div className="flex items-center gap-3">
-                                    <div className="flex items-center gap-2">
-                                        <span className="text-gray-500 text-xs md:text-sm">{project.subtitle}</span>
-                                        <span className="text-[10px] font-sans font-normal text-gray-400 bg-white/5 px-1.5 py-0.5 rounded border border-white/5">{progress}%</span>
+                            <div className="flex flex-col gap-1">
+                                <div className="flex items-center gap-4">
+                                    <h1
+                                        className="text-2xl md:text-3xl font-display font-bold text-white hover:text-indigo-400 transition-colors cursor-pointer leading-tight"
+                                        onClick={() => ctx.requestInput("Nombre del Proyecto", (title) => ctx.updateProject(project.id, { title }))}
+                                    >
+                                        {project.title}
+                                    </h1>
+                                    <div className="flex items-center gap-3 bg-emerald-500/10 px-4 py-1.5 rounded-2xl border border-emerald-500/30 shadow-[0_0_20px_rgba(16,185,129,0.1)]">
+                                        <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_10px_rgba(16,185,129,0.8)]"></div>
+                                        <span className="text-lg font-bold text-white tabular-nums">{progress}%</span>
                                     </div>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    <span className="text-gray-500 text-sm italic font-light">{project.subtitle || "Sin descripción"}</span>
                                     <button
-                                        className="text-[10px] font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded px-2 py-0.5 hover:bg-emerald-500/20 transition-colors flex items-center gap-1"
+                                        className="text-[10px] font-bold uppercase tracking-wider bg-emerald-500/5 text-emerald-400 border border-emerald-500/20 rounded-lg px-3 py-1 hover:bg-emerald-500/20 transition-all flex items-center gap-2"
                                         onClick={() => {
                                             const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
                                             if (isLocal) {
@@ -82,20 +85,20 @@ export const ProjectView: React.FC = () => {
                     </div>
 
                     <div className="flex flex-col-reverse md:flex-row items-center gap-4 flex-1 justify-end w-full">
-                        <div className="relative w-full max-w-md group">
+                        <div className="relative w-full max-w-sm group">
                             <Icons.Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-indigo-400 transition-colors" size={18} />
-                            <input type="text" placeholder="Buscar tareas..." value={ctx.searchQuery} onChange={(e) => ctx.setSearchQuery(e.target.value)} className="w-full bg-black/20 border border-white/10 rounded-xl py-2.5 pl-12 pr-4 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-indigo-500/50 focus:bg-white/5 transition-all" />
+                            <input type="text" placeholder="Buscar tareas..." value={ctx.searchQuery} onChange={(e) => ctx.setSearchQuery(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-2xl py-2.5 pl-12 pr-4 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-indigo-500/50 focus:bg-white/10 transition-all font-light" />
                         </div>
                         <div className="h-8 w-[1px] bg-white/10 mx-2 hidden md:block"></div>
                         <div className="flex gap-2 w-full md:w-auto justify-end">
                             <NotificationCenter />
-                            <button onClick={ctx.openStatsModal} className="p-2.5 rounded-xl hover:bg-emerald-500/10 text-gray-400 hover:text-emerald-400 transition-colors relative group">
+                            <button onClick={ctx.openStatsModal} className="p-2.5 rounded-2xl hover:bg-emerald-500/10 text-gray-400 hover:text-emerald-400 transition-colors relative group">
                                 <Icons.Chart size={20} />
                             </button>
-                            <button onClick={ctx.openAIModal} className="p-2.5 rounded-xl hover:bg-indigo-500/10 text-gray-400 hover:text-indigo-400 transition-colors relative group">
+                            <button onClick={ctx.openAIModal} className="p-2.5 rounded-2xl hover:bg-indigo-500/10 text-gray-400 hover:text-indigo-400 transition-colors relative group">
                                 <Icons.Bot size={20} />
                             </button>
-                            <button onClick={() => ctx.requestInput("Nueva Tarea Principal", (title) => ctx.addTask(null, title))} className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2.5 rounded-xl font-medium text-sm transition-all shadow-lg shadow-indigo-900/20 whitespace-nowrap">
+                            <button onClick={() => ctx.requestInput("Nueva Tarea Principal", (title) => ctx.addTask(null, title))} className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-2.5 rounded-2xl font-bold text-sm transition-all shadow-lg shadow-indigo-900/40 whitespace-nowrap active:scale-95">
                                 <Icons.Add size={18} /> <span className="inline">Tarea</span>
                             </button>
                         </div>
@@ -115,6 +118,6 @@ export const ProjectView: React.FC = () => {
                     )}
                 </div>
             </div>
-        </div>
+        </div >
     );
 }

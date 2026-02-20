@@ -51,33 +51,14 @@ const MainApp: React.FC = () => {
   if (isAuthCallback && !user) {
     return (
       <div className="h-screen w-full bg-[#050505] flex flex-col items-center justify-center text-white">
-        <div className="animate-spin w-8 h-8 border-2 border-white/20 border-t-indigo-500 rounded-full mb-4"></div>
-        <h2 className="font-mono text-lg font-bold text-indigo-400">Procesando Login...</h2>
-        <p className="text-xs text-gray-500 mt-2">Estamos validando tu sesión con Google.</p>
-
-        <div className="mt-8 p-4 bg-gray-900 rounded border border-gray-800 max-w-lg w-full font-mono text-[10px] overflow-hidden">
-          <p className="text-gray-400 mb-2">DEBUG INFO:</p>
-          <p>Auth Callback Detected: <span className="text-green-400">YES</span></p>
-          <p>User State: <span className="text-yellow-400">NULL (Waiting...)</span></p>
-          <p className="mt-2 truncate opacity-50">Hash: {window.location.hash}</p>
+        <div className="relative">
+          <div className="w-16 h-16 border-4 border-white/5 border-t-indigo-500 rounded-full animate-spin"></div>
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="w-8 h-8 bg-indigo-500/20 rounded-full animate-pulse"></div>
+          </div>
         </div>
-
-        <div className="mt-8 flex gap-4">
-          <button
-            onClick={() => window.location.reload()}
-            className="px-4 py-2 bg-indigo-600 rounded hover:bg-indigo-700 text-xs"
-          >
-            Reintentar
-          </button>
-          <button
-            onClick={() => {
-              window.location.href = window.location.pathname; // Clear hash
-            }}
-            className="px-4 py-2 bg-gray-700 rounded hover:bg-gray-600 text-xs"
-          >
-            Cancelar / Volver
-          </button>
-        </div>
+        <h2 className="mt-8 font-display text-xl font-bold tracking-widest text-white/90 animate-pulse">AUTENTICANDO</h2>
+        <p className="text-[10px] text-gray-500 mt-4 tracking-[0.3em] font-light uppercase">Sincronizando con Apolo Cloud</p>
       </div>
     );
   }
