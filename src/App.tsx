@@ -10,6 +10,7 @@ import { StatsModal } from './components/features/StatsModal';
 import { ProfileModal } from './components/features/ProfileModal';
 import { TaskDetailModal } from './components/features/TaskDetailModal';
 import { SplashScreen } from './components/features/SplashScreen';
+import { NotificationModal } from './components/ui/NotificationModal';
 import { Icons } from './components/ui/Icons';
 
 const MainApp: React.FC = () => {
@@ -118,6 +119,16 @@ const MainApp: React.FC = () => {
       {ctx.showStats && <StatsModal onClose={() => ctx.setShowStats(false)} />}
       {ctx.showProfile && <ProfileModal onClose={() => ctx.setShowProfile(false)} />}
       {ctx.activeTask && <TaskDetailModal task={ctx.activeTask} onClose={() => ctx.setActiveTask(null)} />}
+
+      {/* Custom System Notifications */}
+      {ctx.notificationConfig && (
+        <NotificationModal
+          type={ctx.notificationConfig.type}
+          title={ctx.notificationConfig.title}
+          message={ctx.notificationConfig.message}
+          onClose={() => ctx.setNotificationConfig(null)}
+        />
+      )}
     </div>
   );
 };

@@ -79,6 +79,27 @@ export const ProjectView: React.FC = () => {
                                     >
                                         <Icons.Share size={10} /> Invitar
                                     </button>
+
+                                    {/* Participants List */}
+                                    <div className="flex items-center -space-x-2 ml-4">
+                                        {ctx.projectMembers.map((member, i) => (
+                                            <div
+                                                key={member.id}
+                                                className={`w-7 h-7 rounded-full border-2 border-[#050505] flex items-center justify-center text-[10px] font-bold text-white overflow-hidden shadow-lg transition-transform hover:translate-y-[-2px] hover:z-10 cursor-help ${member.avatarColor}`}
+                                                title={member.name}
+                                                style={{ zIndex: ctx.projectMembers.length - i }}
+                                            >
+                                                {member.avatarUrl ? (
+                                                    <img src={member.avatarUrl} alt={member.name} className="w-full h-full object-cover" />
+                                                ) : (
+                                                    member.name.charAt(0).toUpperCase()
+                                                )}
+                                            </div>
+                                        ))}
+                                        {ctx.projectMembers.length === 0 && (
+                                            <div className="text-[10px] text-gray-600 font-light italic ml-2">Solo tú</div>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
                         </div>
