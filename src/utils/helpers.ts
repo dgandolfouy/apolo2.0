@@ -1,7 +1,17 @@
 import type { Task, Project } from '../types';
 import { TaskStatus } from '../types';
 
-export const generateId = () => Math.random().toString(36).substring(2, 10);
+export const generateId = () => {
+    try {
+        return crypto.randomUUID();
+    } catch (e) {
+        // Fallback for non-secure contexts or older browsers
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+            const r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
+            return v.toString(16);
+        });
+    }
+};
 
 export function getRandomColor(): string {
     const colors = ['indigo', 'emerald', 'rose', 'amber', 'cyan', 'violet', 'fuchsia'];

@@ -62,6 +62,7 @@ export interface Task {
     // AI Integration
     aiContext?: string; // Hidden context for the AI
     suggestedSteps?: string; // AI generated suggestions
+    is_archived?: boolean; // New v0.9.92
 }
 
 export interface Project {
@@ -74,6 +75,7 @@ export interface Project {
     imageUrl?: string; // New: Project cover/logo
     color?: string; // Added for compatibility with Supabase plan
     position?: number; // For custom ordering
+    is_archived?: boolean; // New v0.9.92
 }
 
 export interface AppState {
