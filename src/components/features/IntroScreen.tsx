@@ -13,7 +13,7 @@ export const IntroScreen: React.FC = () => {
                     APOLO
                 </h1>
                 <p className="text-gray-500 mt-2 font-sans font-normal tracking-wider text-[10px]">
-                    v0.9.70
+                    v0.9.71
                 </p>
             </div>
 
