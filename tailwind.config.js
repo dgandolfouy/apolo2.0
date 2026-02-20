@@ -47,4 +47,21 @@ export default {
         },
     },
     plugins: [],
+    safelist: [
+        {
+            pattern: /(bg|border|text)-(indigo|emerald|rose|amber|cyan|violet|fuchsia)-(400|500|900)/,
+            variants: ['hover', 'focus', 'group-hover'],
+        },
+        {
+            pattern: /(bg|border)-(indigo|emerald|rose|amber|cyan|violet|fuchsia)-(500|900)\/(5|10|20|30|40|50|80)/,
+            variants: ['hover', 'focus', 'group-hover'],
+        },
+        {
+            pattern: /(from|to)-(indigo|emerald|rose|amber|cyan|violet|fuchsia)-(500|900)/,
+            variants: ['hover'],
+        },
+        {
+            pattern: /(from|to)-(indigo|emerald|rose|amber|cyan|violet|fuchsia)-(500|900)\/(20|40)/,
+        },
+    ],
 }
