@@ -71,6 +71,15 @@ export const findTask = (tasks: Task[], id: string): Task | undefined => {
     return undefined;
 };
 
+export const findTaskAndParent = (tasks: Task[], targetId: string, parentId: string | null = null): { parentId: string | null, siblings: Task[] } | undefined => {
+    if (tasks.some(t => t.id === targetId)) return { parentId, siblings: tasks };
+    for (const task of tasks) {
+        const found = findTaskAndParent(task.subtasks, targetId, task.id);
+        if (found) return found;
+    }
+    return undefined;
+};
+
 export const findTaskAndUpdate = (tasks: Task[], targetId: string, updater: (t: Task) => Task): Task[] => {
     return tasks.map(task => {
         if (task.id === targetId) return updater(task);

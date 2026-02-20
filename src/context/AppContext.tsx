@@ -2,7 +2,7 @@ import React, { createContext, useState, useEffect, useCallback } from 'react';
 import type { ReactNode } from 'react';
 import type { AppState, User, Task, Project, ActivityLog, Attachment } from '../types';
 import { TaskStatus, USERS } from '../types';
-import { generateId, findTaskAndAddSubtask, findTaskAndUpdate, findTaskAndDelete, getRandomColor } from '../utils/helpers';
+import { generateId, findTaskAndAddSubtask, findTaskAndUpdate, findTaskAndDelete, getRandomColor, findTask, findTaskAndParent } from '../utils/helpers';
 import { supabase } from '../lib/supabase';
 
 interface AppContextType {
@@ -458,11 +458,55 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         if (current) updateTask(taskId, { status: current === TaskStatus.COMPLETED ? TaskStatus.PENDING : TaskStatus.COMPLETED });
     }, [activeProjectId, state.projects, updateTask]);
 
-    const moveTask = useCallback(async (_draggedId: string, _targetId: string, _position: 'before' | 'after' | 'inside') => {
+    const moveTask = useCallback(async (draggedId: string, targetId: string, position: 'before' | 'after' | 'inside') => {
         if (!activeProjectId) return;
-        // Simplified move for sync
-        fetchUserData();
-    }, [activeProjectId, fetchUserData]);
+        const project = state.projects.find(p => p.id === activeProjectId);
+        if (!project) return;
+
+        // Find parent and siblings of target
+        let newParentId: string | null = null;
+        let siblings: Task[] = [];
+
+        if (position === 'inside') {
+            newParentId = targetId;
+            const targetTask = findTask(project.tasks, targetId);
+            siblings = targetTask?.subtasks || [];
+        } else {
+            const result = findTaskAndParent(project.tasks, targetId);
+            newParentId = result?.parentId || null;
+            siblings = result?.siblings || project.tasks;
+        }
+
+        // Calculate new position
+        let newPos = 1000;
+        const targetIndex = siblings.findIndex(t => t.id === targetId);
+
+        if (position === 'inside') {
+            const maxPos = siblings.reduce((max, t) => Math.max(max, t.position || 0), 0);
+            newPos = maxPos + 1000;
+        } else if (position === 'before') {
+            const currentPos = siblings[targetIndex]?.position || 0;
+            const prev = siblings[targetIndex - 1];
+            newPos = prev ? (prev.position! + currentPos) / 2 : currentPos - 1000;
+        } else if (position === 'after') {
+            const currentPos = siblings[targetIndex]?.position || 0;
+            const next = siblings[targetIndex + 1];
+            newPos = next ? (currentPos + next.position!) / 2 : currentPos + 1000;
+        }
+
+        try {
+            const { error } = await supabase.from('tasks').update({
+                parent_id: newParentId,
+                position: newPos
+            }).eq('id', draggedId);
+
+            if (error) throw error;
+            fetchUserData();
+        } catch (e: any) {
+            setNotificationConfig({ type: 'error', title: 'Error al mover', message: e.message });
+            fetchUserData();
+        }
+    }, [activeProjectId, state.projects, fetchUserData]);
 
     const addActivity = useCallback(async (taskId: string, content: string, type: ActivityLog['type']) => {
         if (!currentUser || !activeProjectId) return;
