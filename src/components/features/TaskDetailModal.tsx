@@ -17,22 +17,26 @@ export const TaskDetailModal: React.FC<{ task: Task; onClose: () => void }> = ({
     const [showLinkInput, setShowLinkInput] = useState(false);
     const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
     const [editingCommentText, setEditingCommentText] = useState('');
-
     const [confirmDelete, setConfirmDelete] = useState(false);
+    const [isDraggingAI, setIsDraggingAI] = useState(false);
 
-    // Local state for smooth editing
     const [title, setTitle] = useState(task.title);
     const [description, setDescription] = useState(task.description || '');
+    const [aiContext, setAiContext] = useState(task.aiContext || '');
+    const prevTaskIdRef = useRef(task.id);
 
     useEffect(() => {
-        setTitle(task.title);
-        setDescription(task.description || '');
-    }, [task.id, task.title, task.description]);
+        if (task.id !== prevTaskIdRef.current) {
+            setTitle(task.title);
+            setDescription(task.description || '');
+            setAiContext(task.aiContext || '');
+            prevTaskIdRef.current = task.id;
+        }
+    }, [task.id]);
 
     const [isRecording, setIsRecording] = useState(false);
     const mediaRecorder = useRef<MediaRecorder | null>(null);
     const audioChunks = useRef<Blob[]>([]);
-
     const commentsRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -118,7 +122,7 @@ export const TaskDetailModal: React.FC<{ task: Task; onClose: () => void }> = ({
         const suggestions = await generateTaskSuggestions(
             task.title,
             task.description || '',
-            task.aiContext || '',
+            aiContext || '',
             project?.title || '',
             task.aiMediaContext
         );
@@ -126,10 +130,41 @@ export const TaskDetailModal: React.FC<{ task: Task; onClose: () => void }> = ({
         setIsGeneratingAI(false);
     }
 
+    const handleProcessFile = (file: File) => {
+        if (file.type.includes('text') || file.name.endsWith('.md') || file.name.endsWith('.txt')) {
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                const content = event.target?.result as string;
+                ctx.updateTask(task.id, { aiContext: (task.aiContext || '') + `\n\n[ARCHIVO ${file.name}]:\n` + content });
+            };
+            reader.readAsText(file);
+        } else if (file.type.includes('image/') || file.type === 'application/pdf' || file.type.includes('video/')) {
+            if (file.size > 10 * 1024 * 1024) {
+                alert("El archivo es demasiado grande (máx 10MB para IA)");
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                const base64 = event.target?.result as string;
+                const newMedia = {
+                    mimeType: file.type || 'application/octet-stream',
+                    data: base64,
+                    name: file.name
+                };
+                ctx.updateTask(task.id, {
+                    aiMediaContext: [...(task.aiMediaContext || []), newMedia]
+                });
+            };
+            reader.readAsDataURL(file);
+        } else {
+            alert("Formato no soportado. Usa texto, imágenes, PDF o video.");
+        }
+    };
+
     const handleDelete = () => {
         ctx.deleteTask(task.id);
-        setConfirmDelete(false); // Close modal
-        onClose(); // Close task detail
+        setConfirmDelete(false);
+        onClose();
     };
 
     return (
@@ -222,20 +257,15 @@ export const TaskDetailModal: React.FC<{ task: Task; onClose: () => void }> = ({
                                                 <div className="text-sm text-gray-200 truncate pr-6">{att.name}</div>
                                                 <div className="text-[10px] text-gray-500">{new Date(att.createdAt).toLocaleDateString()}</div>
                                             </div>
-
-                                            {/* Delete Button */}
-                                            {/* Delete Button (Always Visible) */}
                                             <button
                                                 onClick={(e) => {
                                                     e.stopPropagation();
                                                     if (confirm('¿Borrar adjunto?')) ctx.deleteAttachment(task.id, att.id);
                                                 }}
                                                 className="absolute top-2 right-2 p-1.5 text-gray-400 hover:text-red-400 bg-black/60 hover:bg-black/80 transition-colors rounded-lg z-30"
-                                                title="Eliminar Adjunto"
                                             >
                                                 <Icons.Delete size={14} />
                                             </button>
-
                                             {att.type === 'audio' && (
                                                 <audio controls src={att.url} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
                                             )}
@@ -246,7 +276,7 @@ export const TaskDetailModal: React.FC<{ task: Task; onClose: () => void }> = ({
                                 </div>
                             </section>
 
-                            <section className="flex-1 flex flex-col">
+                            <section>
                                 <h3 className="text-xs font-bold uppercase tracking-widest text-gray-500 mb-4 flex items-center gap-2"><Icons.Book size={14} /> Actividad</h3>
                                 <div className="bg-black/20 rounded-xl border border-white/5 p-4 max-h-[300px] overflow-y-auto custom-scrollbar mb-4" ref={commentsRef}>
                                     {task.activity.map(log => {
@@ -283,7 +313,6 @@ export const TaskDetailModal: React.FC<{ task: Task; onClose: () => void }> = ({
                                                         </div>
                                                     ) : (
                                                         <div className={`text-sm whitespace-pre-wrap ${log.type === 'status_change' ? 'text-indigo-400 italic' : 'text-gray-400'}`}>
-                                                            {/* Simple URL Linkification */}
                                                             {log.content.split(' ').map((word: string, i: number) => {
                                                                 if (word.startsWith('http')) {
                                                                     return <a key={i} href={word} target="_blank" rel="noreferrer" className="text-indigo-400 hover:underline">{word} </a>
@@ -294,113 +323,119 @@ export const TaskDetailModal: React.FC<{ task: Task; onClose: () => void }> = ({
                                                     )}
                                                 </div>
 
-                                                {/* Actions: Only for author and non-system logs */}
                                                 {isAuthor && log.type === 'comment' && !isEditing && (
                                                     <div className="absolute right-0 top-0 opacity-0 group-hover/comment:opacity-100 flex gap-1 bg-[#0F0F12] pl-2">
                                                         <button
                                                             onClick={() => { setEditingCommentId(log.id); setEditingCommentText(log.content); }}
                                                             className="p-1 text-gray-600 hover:text-indigo-400 transition-colors"
-                                                            title="Editar"
                                                         >
                                                             <Icons.Edit size={12} />
                                                         </button>
                                                         <button
                                                             onClick={() => ctx.deleteActivity(task.id, log.id)}
                                                             className="p-1 text-gray-600 hover:text-red-400 transition-colors"
-                                                            title="Borrar"
                                                         >
                                                             <Icons.Delete size={12} />
                                                         </button>
                                                     </div>
                                                 )}
                                             </div>
-                                        )
+                                        );
                                     })}
                                 </div>
                                 <form onSubmit={handleAddComment} className="relative">
                                     <input type="text" value={newComment} onChange={(e) => setNewComment(e.target.value)} placeholder="Comentar..." className="w-full bg-white/5 border border-white/10 rounded-xl pl-4 pr-24 py-3 text-sm text-white focus:outline-none focus:border-indigo-500/50" />
-
                                     <div className="absolute right-12 top-2 flex items-center gap-1">
-                                        <label className="p-1.5 text-gray-500 hover:text-indigo-400 cursor-pointer transition-colors" title="Adjuntar Archivo">
+                                        <label className="p-1.5 text-gray-500 hover:text-indigo-400 cursor-pointer transition-colors">
                                             <Icons.Upload size={16} />
                                             <input type="file" className="hidden" onChange={handleFileUpload} />
                                         </label>
-                                        <button
-                                            type="button"
-                                            onClick={() => setShowLinkInput(!showLinkInput)}
-                                            className={`p-1.5 transition-colors ${showLinkInput ? 'text-indigo-400' : 'text-gray-500 hover:text-indigo-400'}`}
-                                            title="Agregar Link"
-                                        >
+                                        <button type="button" onClick={() => setShowLinkInput(!showLinkInput)} className={`p-1.5 transition-colors ${showLinkInput ? 'text-indigo-400' : 'text-gray-500 hover:text-indigo-400'}`}>
                                             <Icons.Link size={16} />
                                         </button>
                                     </div>
-
                                     <button type="submit" disabled={!newComment.trim()} className="absolute right-2 top-2 p-1.5 bg-indigo-600 text-white rounded-lg disabled:opacity-50"><Icons.ArrowRight size={16} /></button>
                                 </form>
                             </section>
                         </>
                     ) : (
                         <div className="space-y-6 animate-fade-in pb-10">
-                            {/* Intelligence Header */}
-                            <div className="flex items-center justify-between mb-2">
-                                <div>
-                                    <h3 className="text-xl font-display font-bold text-white flex items-center gap-3">
-                                        <Icons.Bot className="text-indigo-400" />
-                                        Consultor de Tarea
-                                    </h3>
-                                    <p className="text-[10px] text-gray-500 uppercase tracking-widest mt-1">Sugerencias Estratégicas y Ejecución</p>
-                                </div>
+                            <div>
+                                <h3 className="text-xl font-display font-bold text-white flex items-center gap-3">
+                                    <Icons.Bot className="text-indigo-400" />
+                                    Consultor de Tarea
+                                </h3>
+                                <p className="text-[10px] text-gray-500 uppercase tracking-widest mt-1">Sugerencias Estratégicas y Ejecución</p>
                             </div>
 
-                            {/* IA Training Context (Style matched with AIModal) */}
-                            <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
-                                <section className="p-6">
-                                    <h4 className="text-xs font-bold uppercase tracking-[0.15em] text-indigo-300 mb-4">ENTRENAMIENTO ESPECÍFICO</h4>
+                            <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden p-6">
+                                <h4 className="text-xs font-bold uppercase tracking-[0.15em] text-indigo-300 mb-4">ENTRENAMIENTO ESPECÍFICO</h4>
 
-                                    <div className="flex gap-2 mb-4">
-                                        <input
-                                            type="text"
-                                            value={linkUrl}
-                                            onChange={(e) => setLinkUrl(e.target.value)}
-                                            placeholder="Pegar link técnico para esta tarea..."
-                                            className="flex-1 bg-black/40 border border-white/10 rounded-xl px-4 py-2 text-xs text-white focus:outline-none focus:border-indigo-500/50"
-                                        />
-                                        <button
-                                            onClick={async () => {
-                                                if (!linkUrl.trim()) return;
-                                                setIsGeneratingAI(true);
-                                                try {
-                                                    const response = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(linkUrl)}`);
-                                                    const data = await response.json();
-                                                    const textContent = data.contents.replace(/<[^>]*>?/gm, ' ').substring(0, 5000);
-                                                    ctx.updateTask(task.id, { aiContext: (task.aiContext || '') + `\n\n[LINK ${linkUrl}]:\n` + textContent });
-                                                    setLinkUrl('');
-                                                } catch (e: any) {
-                                                    alert("No se pudo leer el link.");
-                                                } finally {
-                                                    setIsGeneratingAI(false);
-                                                }
-                                            }}
-                                            disabled={isGeneratingAI || !linkUrl.trim()}
-                                            className="px-4 bg-indigo-600/20 hover:bg-indigo-600/40 text-indigo-400 rounded-xl text-xs font-bold border border-indigo-500/20 disabled:opacity-30 transition-all"
-                                        >
-                                            LEER
-                                        </button>
+                                <div className="flex gap-2 mb-4">
+                                    <input
+                                        type="text"
+                                        value={linkUrl}
+                                        onChange={(e) => setLinkUrl(e.target.value)}
+                                        placeholder="Pegar link técnico para esta tarea..."
+                                        className="flex-1 bg-black/40 border border-white/10 rounded-xl px-4 py-2 text-xs text-white focus:outline-none focus:border-indigo-500/50"
+                                    />
+                                    <button
+                                        onClick={async () => {
+                                            if (!linkUrl.trim()) return;
+                                            setIsGeneratingAI(true);
+                                            try {
+                                                const response = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(linkUrl)}`);
+                                                const data = await response.json();
+                                                const textContent = data.contents.replace(/<[^>]*>?/gm, ' ').substring(0, 5000);
+                                                ctx.updateTask(task.id, { aiContext: (task.aiContext || '') + `\n\n[LINK ${linkUrl}]:\n` + textContent });
+                                                setLinkUrl('');
+                                            } catch (e: any) {
+                                                alert("No se pudo leer el link.");
+                                            } finally {
+                                                setIsGeneratingAI(false);
+                                            }
+                                        }}
+                                        disabled={isGeneratingAI || !linkUrl.trim()}
+                                        className="px-4 bg-indigo-600/20 hover:bg-indigo-600/40 text-indigo-400 rounded-xl text-xs font-bold border border-indigo-500/20 disabled:opacity-30 transition-all"
+                                    >
+                                        LEER
+                                    </button>
+                                </div>
+
+                                <div
+                                    className={`relative transition-all rounded-xl ${isDraggingAI ? 'scale-[1.01]' : ''}`}
+                                    onDragOver={(e) => { e.preventDefault(); setIsDraggingAI(true); }}
+                                    onDragLeave={() => setIsDraggingAI(false)}
+                                    onDrop={(e) => {
+                                        e.preventDefault();
+                                        setIsDraggingAI(false);
+                                        const file = e.dataTransfer.files[0];
+                                        if (file) handleProcessFile(file);
+                                    }}
+                                >
+                                    <div className="flex items-center justify-between mb-4 mt-2">
+                                        <h4 className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Base de Conocimiento</h4>
+                                        <div className="flex gap-2">
+                                            <input type="file" id="ai-file-upload" className="hidden" onChange={(e) => {
+                                                const file = e.target.files?.[0];
+                                                if (file) handleProcessFile(file);
+                                            }} />
+                                            <label htmlFor="ai-file-upload" className="flex items-center gap-2 px-3 py-1.5 bg-indigo-600/20 hover:bg-indigo-600/40 text-indigo-400 rounded-lg text-[9px] font-bold border border-indigo-500/20 transition-all cursor-pointer">
+                                                <Icons.Upload size={12} />
+                                                SUBIR ARCHIVO
+                                            </label>
+                                        </div>
                                     </div>
 
-                                    {/* Media Context Preview */}
                                     {task.aiMediaContext && task.aiMediaContext.length > 0 && (
                                         <div className="flex flex-wrap gap-2 mb-4">
                                             {task.aiMediaContext.map((media, idx) => (
-                                                <div key={idx} className="flex items-center gap-2 bg-indigo-500/10 border border-indigo-500/20 rounded-lg px-2 py-1 group/media">
+                                                <div key={idx} className="flex items-center gap-2 bg-indigo-500/10 border border-indigo-500/20 rounded-lg px-2 py-1">
                                                     <span className="text-[10px] text-indigo-300 font-medium truncate max-w-[120px]">{media.name}</span>
-                                                    <button
-                                                        onClick={() => {
-                                                            const updated = task.aiMediaContext?.filter((_, i) => i !== idx);
-                                                            ctx.updateTask(task.id, { aiMediaContext: updated });
-                                                        }}
-                                                        className="text-indigo-400 hover:text-red-400 transition-colors"
-                                                    >
+                                                    <button onClick={() => {
+                                                        const updated = task.aiMediaContext?.filter((_, i) => i !== idx);
+                                                        ctx.updateTask(task.id, { aiMediaContext: updated });
+                                                    }} className="text-indigo-400 hover:text-red-400 transition-colors">
                                                         <Icons.Close size={10} />
                                                     </button>
                                                 </div>
@@ -408,66 +443,44 @@ export const TaskDetailModal: React.FC<{ task: Task; onClose: () => void }> = ({
                                         </div>
                                     )}
 
-                                    <textarea
-                                        value={task.aiContext || ''}
-                                        onChange={(e) => ctx.updateTask(task.id, { aiContext: e.target.value })}
-                                        placeholder="Pega aquí contenido especializado o arrastra archivos de texto, fotos, PDFs o videos..."
-                                        className="w-full bg-black/40 border border-white/10 rounded-xl p-4 text-sm text-gray-300 focus:outline-none focus:border-indigo-500/50 min-h-[140px] resize-none custom-scrollbar"
-                                        onDragOver={(e) => e.preventDefault()}
-                                        onDrop={(e) => {
-                                            e.preventDefault();
-                                            const file = e.dataTransfer.files[0];
-                                            if (!file) return;
-
-                                            if (file.type.includes('text') || file.name.endsWith('.md') || file.name.endsWith('.txt')) {
-                                                const reader = new FileReader();
-                                                reader.onload = (event) => {
-                                                    const content = event.target?.result as string;
-                                                    ctx.updateTask(task.id, { aiContext: (task.aiContext || '') + `\n\n[ARCHIVO ${file.name}]:\n` + content });
-                                                };
-                                                reader.readAsText(file);
-                                            } else if (file.type.includes('image/') || file.type === 'application/pdf' || file.type.includes('video/')) {
-                                                if (file.size > 10 * 1024 * 1024) {
-                                                    alert("El archivo es demasiado grande (máx 10MB para IA)");
-                                                    return;
+                                    <div className="relative group">
+                                        <textarea
+                                            value={aiContext}
+                                            onChange={(e) => setAiContext(e.target.value)}
+                                            onBlur={() => {
+                                                if (aiContext !== (task.aiContext || '')) {
+                                                    ctx.updateTask(task.id, { aiContext });
                                                 }
-                                                const reader = new FileReader();
-                                                reader.onload = (event) => {
-                                                    const base64 = event.target?.result as string;
-                                                    const newMedia = {
-                                                        mimeType: file.type || 'application/octet-stream',
-                                                        data: base64,
-                                                        name: file.name
-                                                    };
-                                                    ctx.updateTask(task.id, {
-                                                        aiMediaContext: [...(task.aiMediaContext || []), newMedia]
-                                                    });
-                                                };
-                                                reader.readAsDataURL(file);
-                                            } else {
-                                                alert("Formato no soportado. Usa texto, imágenes, PDF o video.");
-                                            }
-                                        }}
-                                    />
-                                    <p className="text-[10px] text-gray-600 mt-2 italic">Tip: Arrastra archivos (PDF, Fotos, Video) para que la IA los analice.</p>
-                                </section>
-
-                                <div className="p-6 pt-0 border-t border-white/5 bg-white/[0.02]">
-                                    <button
-                                        onClick={handleGenerateSuggestions}
-                                        disabled={isGeneratingAI}
-                                        className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-4 rounded-xl transition-all flex items-center justify-center gap-3 shadow-lg shadow-indigo-900/20 active:scale-[0.98] disabled:opacity-50"
-                                    >
-                                        {isGeneratingAI ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> : <Icons.Bot size={20} />}
-                                        <span className="tracking-wide">GENERAR ESTRATEGIA DE EJECUCIÓN</span>
-                                    </button>
+                                            }}
+                                            placeholder="Pega contenido o arrastra archivos..."
+                                            className={`w-full bg-black/40 border rounded-xl p-4 text-sm text-gray-300 focus:outline-none focus:border-indigo-500/50 min-h-[140px] resize-none custom-scrollbar transition-all ${isDraggingAI ? 'border-indigo-500 border-dashed ring-4 ring-indigo-500/10 shadow-lg shadow-indigo-500/20' : 'border-white/10'}`}
+                                        />
+                                        {isDraggingAI && (
+                                            <div className="absolute inset-0 bg-indigo-600/10 backdrop-blur-[2px] rounded-xl flex items-center justify-center pointer-events-none z-10 animate-pulse">
+                                                <div className="flex flex-col items-center gap-2">
+                                                    <Icons.Bot size={32} className="text-indigo-400" />
+                                                    <span className="text-xs font-bold text-indigo-300 uppercase tracking-widest">Suelta para Analizar</span>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
 
-                            {/* Suggestions Display (Style matched with AIModal) */}
+                            <div className="pt-2">
+                                <button
+                                    onClick={handleGenerateSuggestions}
+                                    disabled={isGeneratingAI}
+                                    className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-4 rounded-xl transition-all flex items-center justify-center gap-3 shadow-lg shadow-indigo-900/20 active:scale-[0.98] disabled:opacity-50"
+                                >
+                                    {isGeneratingAI ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> : <Icons.Bot size={20} />}
+                                    <span className="tracking-wide">GENERAR ESTRATEGIA DE EJECUCIÓN</span>
+                                </button>
+                            </div>
+
                             {task.suggestedSteps && (
-                                <div className="bg-white/5 border border-white/10 rounded-2xl p-6 animate-slide-up shadow-inner relative group">
-                                    <div className="absolute top-4 right-4 text-[10px] font-bold text-gray-600 uppercase tracking-widest group-hover:text-indigo-400 transition-colors">Respuesta IA</div>
+                                <div className="bg-white/5 border border-white/10 rounded-2xl p-6 animate-fade-in shadow-inner relative group mt-6">
+                                    <div className="absolute top-4 right-4 text-[10px] font-bold text-gray-600 uppercase tracking-widest">Respuesta IA</div>
                                     <h4 className="text-xs font-bold text-white mb-6 uppercase tracking-[0.2em] opacity-40">Plan Recomendado</h4>
                                     <div className="prose prose-invert prose-sm max-w-none space-y-4">
                                         {task.suggestedSteps.split('\n').filter(line => line.trim()).map((line, i) => (
@@ -482,17 +495,17 @@ export const TaskDetailModal: React.FC<{ task: Task; onClose: () => void }> = ({
                         </div>
                     )}
                 </div>
-
-                <ConfirmModal
-                    isOpen={confirmDelete}
-                    onCancel={() => setConfirmDelete(false)}
-                    onConfirm={handleDelete}
-                    title="Eliminar Tarea"
-                    message="¿Estás seguro de que deseas eliminar esta tarea y todas sus subtareas? Esta acción no se puede deshacer."
-                    confirmText="Eliminar"
-                    variant="danger"
-                />
             </div>
+
+            <ConfirmModal
+                isOpen={confirmDelete}
+                onCancel={() => setConfirmDelete(false)}
+                onConfirm={handleDelete}
+                title="Eliminar Tarea"
+                message="¿Estás seguro de que deseas eliminar esta tarea? Esta acción no se puede deshacer."
+                confirmText="Eliminar"
+                variant="danger"
+            />
         </div>
     );
-}
+};

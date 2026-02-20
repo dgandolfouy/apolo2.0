@@ -40,12 +40,7 @@ export const AIModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         }
     };
 
-    const handleFileDrop = (e: React.DragEvent) => {
-        e.preventDefault();
-        setIsDragging(false);
-        const file = e.dataTransfer.files[0];
-        if (!file) return;
-
+    const handleProcessFile = (file: File) => {
         if (file.type.includes('text') || file.name.endsWith('.md') || file.name.endsWith('.txt')) {
             const reader = new FileReader();
             reader.onload = (event) => {
@@ -100,7 +95,7 @@ export const AIModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                 </div>
 
                 {/* Training Context Area */}
-                <div className={`mb-4 transition-all duration-300 ${showTraining ? 'h-40' : 'h-10'} overflow-hidden bg-white/5 rounded-xl border border-white/10`}>
+                <div className={`mb-4 transition-all duration-300 ${showTraining ? 'max-h-[300px]' : 'h-10'} overflow-hidden bg-white/5 rounded-xl border border-white/10`}>
                     <button
                         onClick={() => setShowTraining(!showTraining)}
                         className="w-full flex items-center justify-between px-4 py-2.5 text-xs font-bold text-indigo-300 hover:bg-white/5 transition-colors"
@@ -109,37 +104,52 @@ export const AIModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                             <Icons.Triangle size={10} className={`transition-transform ${showTraining ? 'rotate-180' : 'rotate-90'}`} />
                             CONFIGURAR ENTRENAMIENTO / CONTEXTO ADICIONAL
                         </span>
-                        {!showTraining && trainingContext && <span className="text-[10px] text-emerald-400">Contexto Activo</span>}
+                        {!showTraining && (trainingContext || mediaParts.length > 0) && <span className="text-[10px] text-emerald-400">Contexto Activo</span>}
                     </button>
                     {showTraining && (
                         <div
                             className={`p-4 pt-0 transition-colors ${isDragging ? 'bg-indigo-500/10' : ''}`}
                             onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
                             onDragLeave={() => setIsDragging(false)}
-                            onDrop={handleFileDrop}
+                            onDrop={(e) => {
+                                e.preventDefault();
+                                setIsDragging(false);
+                                if (e.dataTransfer.files[0]) handleProcessFile(e.dataTransfer.files[0]);
+                            }}
                         >
-                            <div className="flex gap-2 mb-3">
-                                <input
-                                    type="text"
-                                    value={urlInput}
-                                    onChange={(e) => setUrlInput(e.target.value)}
-                                    placeholder="Pegar link para que la IA lo lea (ej: manual de costos)..."
-                                    className="flex-1 bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-[10px] text-white focus:outline-none focus:border-indigo-500/50"
-                                />
-                                <button
-                                    onClick={handleFetchUrl}
-                                    disabled={fetchingUrl || !urlInput.trim()}
-                                    className="px-3 bg-white/5 hover:bg-white/10 text-indigo-300 rounded-lg text-[10px] font-bold disabled:opacity-30 border border-white/10"
-                                >
-                                    {fetchingUrl ? 'LEYENDO...' : 'LEER LINK'}
-                                </button>
+                            <div className="flex items-center justify-between mb-3">
+                                <div className="flex gap-2 flex-1 mr-4">
+                                    <input
+                                        type="text"
+                                        value={urlInput}
+                                        onChange={(e) => setUrlInput(e.target.value)}
+                                        placeholder="Pegar link..."
+                                        className="flex-1 bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-[10px] text-white focus:outline-none focus:border-indigo-500/50"
+                                    />
+                                    <button
+                                        onClick={handleFetchUrl}
+                                        disabled={fetchingUrl || !urlInput.trim()}
+                                        className="px-3 bg-white/5 hover:bg-white/10 text-indigo-300 rounded-lg text-[10px] font-bold disabled:opacity-30 border border-white/10 whitespace-nowrap"
+                                    >
+                                        {fetchingUrl ? 'LEYENDO...' : 'LEER LINK'}
+                                    </button>
+                                </div>
+                                <div className="flex shrink-0">
+                                    <input type="file" id="global-ai-upload" className="hidden" onChange={(e) => {
+                                        if (e.target.files?.[0]) handleProcessFile(e.target.files[0]);
+                                    }} />
+                                    <label htmlFor="global-ai-upload" className="flex items-center gap-2 px-3 py-1.5 bg-indigo-600/20 hover:bg-indigo-600/40 text-indigo-400 rounded-lg text-[9px] font-bold border border-indigo-500/20 transition-all cursor-pointer">
+                                        <Icons.Upload size={12} />
+                                        SUBIR ARCHIVO
+                                    </label>
+                                </div>
                             </div>
 
                             {/* Multi-modal previews */}
                             {mediaParts.length > 0 && (
                                 <div className="flex flex-wrap gap-2 mb-3">
                                     {mediaParts.map((media, idx) => (
-                                        <div key={idx} className="flex items-center gap-2 bg-indigo-500/10 border border-indigo-500/20 rounded-md px-2 py-0.5 group/media">
+                                        <div key={idx} className="flex items-center gap-2 bg-indigo-500/10 border border-indigo-500/20 rounded-md px-2 py-0.5 group/media relative">
                                             <span className="text-[9px] text-indigo-300 font-medium truncate max-w-[100px]">{media.name}</span>
                                             <button
                                                 onClick={() => setMediaParts(prev => prev.filter((_, i) => i !== idx))}
@@ -152,12 +162,22 @@ export const AIModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                                 </div>
                             )}
 
-                            <textarea
-                                value={trainingContext}
-                                onChange={(e) => setTrainingContext(e.target.value)}
-                                placeholder="Pega información técnica, o ARRASTRA archivos (Fotos, PDF, Video) aquí mismo..."
-                                className="w-full h-24 bg-black/40 border border-white/10 rounded-lg p-3 text-xs text-gray-300 focus:outline-none focus:border-indigo-500/50 resize-none custom-scrollbar"
-                            />
+                            <div className="relative group">
+                                <textarea
+                                    value={trainingContext}
+                                    onChange={(e) => setTrainingContext(e.target.value)}
+                                    placeholder="Pega información técnica o arrastra archivos..."
+                                    className={`w-full h-24 bg-black/40 border rounded-lg p-3 text-xs text-gray-300 focus:outline-none focus:border-indigo-500/50 resize-none custom-scrollbar transition-all ${isDragging ? 'border-indigo-500 border-dashed ring-2 ring-indigo-500/20 shadow-lg' : 'border-white/10'}`}
+                                />
+                                {isDragging && (
+                                    <div className="absolute inset-0 bg-indigo-600/10 backdrop-blur-[2px] rounded-lg flex items-center justify-center pointer-events-none z-10 animate-pulse">
+                                        <div className="flex flex-col items-center gap-1">
+                                            <Icons.Bot size={24} className="text-indigo-400" />
+                                            <span className="text-[9px] font-bold text-indigo-300 uppercase">Suelta para Analizar</span>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     )}
                 </div>
