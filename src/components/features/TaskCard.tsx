@@ -50,13 +50,13 @@ export const TaskCard: React.FC<{ task: Task; depth: number; themeIndex?: number
     if (isDragging) {
         bgClass = `bg-${colorBasename}-500/5 border-dashed border-${colorBasename}-500/30`;
     } else if (depth === 0) {
-        // Root Task: Stronger Gradient
-        bgClass = `bg-gradient-to-br from-${colorBasename}-500/20 to-${colorBasename}-900/40 border-${colorBasename}-500/40 shadow-xl shadow-${colorBasename}-900/30`;
+        // Root Task: Stronger Gradient & Border
+        bgClass = `bg-gradient-to-br from-${colorBasename}-500/30 to-${colorBasename}-900/50 border-${colorBasename}-500/50 shadow-2xl shadow-${colorBasename}-900/40`;
     } else {
-        // Subtasks
-        const opacity = depth === 1 ? '15' : '10';
-        bgClass = `bg-${colorBasename}-500/${opacity} hover:bg-${colorBasename}-500/20`;
-        borderClass = `border-${colorBasename}-500/30`;
+        // Subtasks: More vibrant blocks
+        const opacity = depth === 1 ? '25' : '15';
+        bgClass = `bg-${colorBasename}-500/${opacity} hover:bg-${colorBasename}-500/40`;
+        borderClass = `border-${colorBasename}-500/40`;
     }
 
     const cardStyle = `${bgClass} ${borderClass} transition-all`;
@@ -191,7 +191,7 @@ export const TaskCard: React.FC<{ task: Task; depth: number; themeIndex?: number
                                 ))}
                             </div>
 
-                            <h4 className={`text-sm font-medium truncate pr-6 ${task.status === TaskStatus.COMPLETED ? 'text-gray-500 line-through' : 'text-gray-200'}`}>
+                            <h4 className={`text-sm font-bold truncate pr-6 ${task.status === TaskStatus.COMPLETED ? 'text-gray-500 line-through' : theme.text}`}>
                                 {task.title}
                             </h4>
 

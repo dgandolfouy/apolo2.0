@@ -26,23 +26,23 @@ export const PROJECT_THEMES = Object.values(PROJECT_COLORS);
 // Root: /20, Subtask: /15, Deep: /10
 export const TAILWIND_SAFELIST = [
     // Indigo
-    "bg-indigo-500/20", "bg-indigo-500/15", "bg-indigo-500/10", "bg-indigo-900/40",
+    "bg-indigo-500/40", "bg-indigo-500/30", "bg-indigo-500/25", "bg-indigo-500/20", "bg-indigo-500/15", "bg-indigo-500/10", "bg-indigo-900/40",
     // Emerald
-    "bg-emerald-500/20", "bg-emerald-500/15", "bg-emerald-500/10", "bg-emerald-900/40",
+    "bg-emerald-500/40", "bg-emerald-500/30", "bg-emerald-500/25", "bg-emerald-500/20", "bg-emerald-500/15", "bg-emerald-500/10", "bg-emerald-900/40",
     // Rose
-    "bg-rose-500/20", "bg-rose-500/15", "bg-rose-500/10", "bg-rose-900/40",
+    "bg-rose-500/40", "bg-rose-500/30", "bg-rose-500/25", "bg-rose-500/20", "bg-rose-500/15", "bg-rose-500/10", "bg-rose-900/40",
     // Amber
-    "bg-amber-500/20", "bg-amber-500/15", "bg-amber-500/10", "bg-amber-900/40",
+    "bg-amber-500/40", "bg-amber-500/30", "bg-amber-500/25", "bg-amber-500/20", "bg-amber-500/15", "bg-amber-500/10", "bg-amber-900/40",
     // Cyan
-    "bg-cyan-500/20", "bg-cyan-500/15", "bg-cyan-500/10", "bg-cyan-900/40",
+    "bg-cyan-500/40", "bg-cyan-500/30", "bg-cyan-500/25", "bg-cyan-500/20", "bg-cyan-500/15", "bg-cyan-500/10", "bg-cyan-900/40",
     // Violet
-    "bg-violet-500/20", "bg-violet-500/15", "bg-violet-500/10", "bg-violet-900/40",
+    "bg-violet-500/40", "bg-violet-500/30", "bg-violet-500/25", "bg-violet-500/20", "bg-violet-500/15", "bg-violet-500/10", "bg-violet-900/40",
     // Fuchsia
-    "bg-fuchsia-500/20", "bg-fuchsia-500/15", "bg-fuchsia-500/10", "bg-fuchsia-900/40",
+    "bg-fuchsia-500/40", "bg-fuchsia-500/30", "bg-fuchsia-500/25", "bg-fuchsia-500/20", "bg-fuchsia-500/15", "bg-fuchsia-500/10", "bg-fuchsia-900/40",
     // Sky
-    "bg-sky-500/20", "bg-sky-500/15", "bg-sky-500/10", "bg-sky-900/40",
+    "bg-sky-500/40", "bg-sky-500/30", "bg-sky-500/25", "bg-sky-500/20", "bg-sky-500/15", "bg-sky-500/10", "bg-sky-900/40",
     // Lime
-    "bg-lime-500/20", "bg-lime-500/15", "bg-lime-500/10", "bg-lime-900/40",
+    "bg-lime-500/40", "bg-lime-500/30", "bg-lime-500/25", "bg-lime-500/20", "bg-lime-500/15", "bg-lime-500/10", "bg-lime-900/40",
 
     // Gradients & Borders (Safelist for dynamic interpolation)
     "from-indigo-500", "to-indigo-900", "border-indigo-500/50", "border-indigo-500/30",
