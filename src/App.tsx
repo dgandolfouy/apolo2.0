@@ -58,7 +58,10 @@ const MainApp: React.FC = () => {
           {authError.replace(/\+/g, ' ')}
         </p>
         <button
-          onClick={() => window.location.href = window.location.pathname}
+          onClick={() => {
+            const invite = params.get('invite');
+            window.location.href = invite ? `${window.location.pathname}?invite=${invite}` : window.location.pathname;
+          }}
           className="px-8 py-3 bg-white/5 border border-white/10 rounded-full text-white hover:bg-white/10 transition-all font-medium"
         >
           Volver a Intentar
