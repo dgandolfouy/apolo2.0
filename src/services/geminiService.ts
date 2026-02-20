@@ -11,24 +11,29 @@ const getClient = () => {
 };
 
 export const getStrategicAdvice = async (
-    context: string,
-    question: string
+    projectContext: string,
+    question: string,
+    customContext?: string
 ): Promise<string> => {
     const client = getClient();
     if (!client) return "Error: API Key no configurada.";
 
     try {
         const prompt = `
-      Prompt Maestro: Consultor Multidisciplinario (Daniel G.)
-      
-      CONTEXTO DEL PROYECTO:
-      ${context}
-
       ROL:
-      Eres un Project Manager Senior experto en economía, diseño y procesos (ISO 9001).
+      Eres un Project Manager Senior y Consultor Estratégico experto en ejecución y optimización.
+      Tu objetivo es dar respuestas breves, extremadamente accionables y directas. No divagues.
       
-      TAREA:
-      Responde a la siguiente consulta del usuario de forma breve, estratégica y orientada a la acción.
+      CONTEXTO DEL PROYECTO (Datos actuales):
+      ${projectContext}
+
+      ${customContext ? `CONTEXTO DE ESTUDIO / DATOS ADICIONALES (Entrenamiento específico del usuario):
+      ${customContext}` : ''}
+
+      INSTRUCCIONES:
+      1. Estudia el contexto del proyecto y el contexto de estudio (si existe).
+      2. Responde a la consulta del usuario de forma profesional y orientada a la acción.
+      3. Si el usuario te dio un link o información específica, básate en ella priorizando esos datos.
       
       CONSULTA:
       ${question}

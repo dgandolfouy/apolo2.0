@@ -1,6 +1,7 @@
 import React, { useContext, useState } from 'react';
 import { AppContext } from '../../context/AppContext';
 import { Icons } from '../ui/Icons';
+import { findTask } from '../../utils/helpers';
 
 export const NotificationCenter: React.FC = () => {
     const ctx = useContext(AppContext);
@@ -9,6 +10,21 @@ export const NotificationCenter: React.FC = () => {
     if (!ctx) return null;
 
     const unreadCount = ctx.unreadCount || 0;
+
+    const handleNotificationClick = (notif: any) => {
+        ctx.markNotificationRead(notif.id);
+
+        if (notif.task_id && ctx.activeProjectId) {
+            const project = ctx.state.projects.find(p => p.id === ctx.activeProjectId);
+            if (project) {
+                const task = findTask(project.tasks, notif.task_id);
+                if (task) {
+                    ctx.openTaskDetail(task);
+                    setIsOpen(false);
+                }
+            }
+        }
+    };
 
     return (
         <div className="relative">
@@ -43,7 +59,7 @@ export const NotificationCenter: React.FC = () => {
                                         <div
                                             key={notif.id}
                                             className={`p-4 border-b border-white/5 hover:bg-white/5 transition-colors cursor-pointer ${!notif.is_read ? 'bg-indigo-500/5' : ''}`}
-                                            onClick={() => ctx.markNotificationRead(notif.id)}
+                                            onClick={() => handleNotificationClick(notif)}
                                         >
                                             <div className="text-sm text-gray-200 mb-1">{notif.content}</div>
                                             <div className="text-[10px] text-gray-500">{new Date(notif.created_at).toLocaleDateString()}</div>

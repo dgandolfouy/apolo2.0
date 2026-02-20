@@ -7,6 +7,9 @@ export const AIModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     const [query, setQuery] = useState('');
     const [response, setResponse] = useState('');
     const [loading, setLoading] = useState(false);
+    const [trainingContext, setTrainingContext] = useState('');
+    const [showTraining, setShowTraining] = useState(false);
+
     const ctx = useContext(AppContext);
 
     if (!ctx) return null;
@@ -19,50 +22,90 @@ export const AIModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     const handleAsk = async () => {
         if (!query.trim()) return;
         setLoading(true);
-        const res = await getStrategicAdvice(contextStr, query);
+        const res = await getStrategicAdvice(contextStr, query, trainingContext);
         setResponse(res);
         setLoading(false);
     };
 
     return (
         <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-fade-in" onClick={onClose}>
-            <div className="bg-[#111115] border border-indigo-500/30 rounded-2xl w-full max-w-2xl p-6 shadow-2xl shadow-indigo-900/20 animate-slide-up flex flex-col max-h-[80vh]" onClick={e => e.stopPropagation()}>
+            <div className="bg-[#111115] border border-indigo-500/30 rounded-2xl w-full max-w-2xl p-6 shadow-2xl shadow-indigo-900/20 animate-slide-up flex flex-col max-h-[85vh]" onClick={e => e.stopPropagation()}>
+
+                {/* Header */}
                 <div className="flex justify-between items-center mb-6">
-                    <h3 className="text-2xl font-display font-normal text-white flex items-center gap-3 tracking-wide">
-                        <Icons.Bot className="text-indigo-400" />
-                        Consultor Estratégico
-                    </h3>
+                    <div>
+                        <h3 className="text-xl font-display font-bold text-white flex items-center gap-3 tracking-wide">
+                            <Icons.Bot className="text-indigo-400" />
+                            Consultor Acción IA
+                        </h3>
+                        <p className="text-[10px] text-gray-500 uppercase tracking-widest mt-1">Socio Estratégico para Ejecución</p>
+                    </div>
                     <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-full text-gray-400"><Icons.Close /></button>
                 </div>
 
-                <div className="flex-1 overflow-y-auto mb-6 pr-2">
-                    {response ? (
-                        <div className="prose prose-invert prose-sm max-w-none bg-white/5 p-4 rounded-xl border border-white/5">
-                            {response.split('\n').map((line, i) => <p key={i} className="mb-2 last:mb-0">{line}</p>)}
-                        </div>
-                    ) : (
-                        <div className="text-center py-12 text-gray-500">
-                            <Icons.Bot className="w-12 h-12 mx-auto mb-3 opacity-20" />
-                            <p>Modos: Inversor Escéptico, Analista Técnico (MSP/Niza) o Calculadora PYME.</p>
-                            <p className="text-sm mt-2">"¿En qué proyecto trabajamos hoy: TAOASIS o GUTEN?"</p>
+                {/* Training Context Area */}
+                <div className={`mb-4 transition-all duration-300 ${showTraining ? 'h-40' : 'h-10'} overflow-hidden bg-white/5 rounded-xl border border-white/10`}>
+                    <button
+                        onClick={() => setShowTraining(!showTraining)}
+                        className="w-full flex items-center justify-between px-4 py-2.5 text-xs font-bold text-indigo-300 hover:bg-white/5 transition-colors"
+                    >
+                        <span className="flex items-center gap-2">
+                            <Icons.Triangle size={10} className={`transition-transform ${showTraining ? 'rotate-180' : 'rotate-90'}`} />
+                            CONFIGURAR ENTRENAMIENTO / CONTEXTO ADICIONAL
+                        </span>
+                        {!showTraining && trainingContext && <span className="text-[10px] text-emerald-400">Contexto Activo</span>}
+                    </button>
+                    {showTraining && (
+                        <div className="p-4 pt-0">
+                            <textarea
+                                value={trainingContext}
+                                onChange={(e) => setTrainingContext(e.target.value)}
+                                placeholder="Pega aquí información técnica, links o instrucciones específicas sobre cómo quieres que la IA analice tu situación ahora mismo..."
+                                className="w-full h-24 bg-black/40 border border-white/10 rounded-lg p-3 text-xs text-gray-300 focus:outline-none focus:border-indigo-500/50 resize-none custom-scrollbar"
+                            />
                         </div>
                     )}
                 </div>
 
+                {/* Main Content Area */}
+                <div className="flex-1 overflow-y-auto mb-6 pr-2 custom-scrollbar">
+                    {response ? (
+                        <div className="prose prose-invert prose-sm max-w-none">
+                            <div className="bg-indigo-500/5 p-5 rounded-2xl border border-indigo-500/20 text-gray-200 leading-relaxed shadow-inner">
+                                {response.split('\n').filter(line => line.trim()).map((line, i) => (
+                                    <div key={i} className="mb-3 flex gap-3">
+                                        <div className="mt-1.5 w-1.5 h-1.5 rounded-full bg-indigo-500 shrink-0"></div>
+                                        <p className="flex-1">{line.replace(/^-\s*/, '')}</p>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="text-center py-10">
+                            <div className="w-16 h-16 bg-indigo-500/10 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-indigo-500/20">
+                                <Icons.Bot className="w-8 h-8 text-indigo-400 opacity-60" />
+                            </div>
+                            <h4 className="text-white font-bold mb-2">¿Cómo puedo ayudarte a avanzar?</h4>
+                            <p className="text-xs text-gray-500 max-w-sm mx-auto"> Define un contexto de estudio arriba o simplemente pregunta algo estratégico sobre tu proyecto.</p>
+                        </div>
+                    )}
+                </div>
+
+                {/* Question Input */}
                 <div className="relative">
                     <input
                         type="text"
                         value={query}
                         onChange={(e) => setQuery(e.target.value)}
                         onKeyDown={(e) => e.key === 'Enter' && handleAsk()}
-                        placeholder="Ej: ¿Cuál es el Landed Cost de este producto?"
-                        className="w-full bg-black/30 border border-white/10 rounded-xl py-4 pl-4 pr-12 text-white focus:outline-none focus:border-indigo-500/50"
+                        placeholder="Pregunta algo: ¿Qué sigue? ¿Cómo optimizo esto?..."
+                        className="w-full bg-black/40 border border-white/10 rounded-xl py-4 pl-4 pr-12 text-white placeholder:text-gray-600 focus:outline-none focus:border-indigo-500/50 shadow-lg"
                         disabled={loading}
                     />
                     <button
                         onClick={handleAsk}
                         disabled={loading || !query.trim()}
-                        className="absolute right-2 top-2 p-2 bg-indigo-600 rounded-lg text-white disabled:opacity-50 hover:bg-indigo-500 transition-colors"
+                        className="absolute right-2 top-2 p-2.5 bg-indigo-600 rounded-lg text-white disabled:opacity-50 hover:bg-indigo-500 transition-all shadow-lg hover:scale-105 active:scale-95"
                     >
                         {loading ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> : <Icons.ArrowRight size={20} />}
                     </button>
