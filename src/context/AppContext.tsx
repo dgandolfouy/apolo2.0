@@ -256,10 +256,15 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
             .on('postgres_changes', { event: '*', schema: 'public', table: 'project_members' }, () => fetchUserData())
             .subscribe();
 
+        const poll = setInterval(() => {
+            fetchUserData();
+        }, 60000);
+
         return () => {
             isMounted = false;
             supabase.removeChannel(notifChannel);
             supabase.removeChannel(collabChannel);
+            clearInterval(poll);
         };
     }, [currentUser?.id, fetchUserData]);
 
